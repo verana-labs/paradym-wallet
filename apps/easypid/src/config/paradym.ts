@@ -32,6 +32,11 @@ export const paradymWalletSdkOptions: SetupParadymWalletSdkOptions = {
   trustMechanisms: [
     { trustMechanism: 'eudi_rp_authentication', trustList: eudiTrustList, trustedX509Entities },
     { trustMechanism: 'x509', trustedX509Entities },
+    {
+      trustMechanism: 'verana',
+      resolverUrl: 'https://resolver.testnet.verana.network',
+      registryDisplay: { organizationName: 'Verana Trust Registry', uri: 'https://verana.io' },
+    },
     { trustMechanism: 'did', trustedDidEntities },
     { trustMechanism: 'none', trustedEntities: trustedOpenId4VciIssuerEntities },
     {

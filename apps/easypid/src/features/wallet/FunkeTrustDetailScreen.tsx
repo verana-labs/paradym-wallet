@@ -18,6 +18,7 @@ import {
   YStack,
 } from '@package/ui'
 import type { TrustedEntity, TrustMechanism } from '@paradym/wallet-sdk'
+import { useRouter } from 'expo-router'
 import { useRef } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -41,6 +42,7 @@ export function FunkeTrustDetailScreen({
   const scrollViewRef = useRef<ScrollViewRefType>(null)
   const [isDevelopmentModeEnabled] = useDevelopmentMode()
   const { t } = useLingui()
+  const router = useRouter()
 
   const trustMechanismName =
     trustMechanism === 'eudi_rp_authentication'
@@ -132,41 +134,71 @@ export function FunkeTrustDetailScreen({
             </YStack>
 
             <YStack gap="$2">
-              {trustedEntities.map((entity) => (
-                <XStack ai="center" key={entity.entityId} br="$8" p="$3.5" gap="$3" bg="$grey-100">
-                  {entity.logoUri && (
-                    <Circle overflow="hidden" size="$4" bg="$grey-50">
-                      <Image src={entity.logoUri} height="100%" width="100%" />
-                    </Circle>
-                  )}
-                  <XStack gap="$2" display="flex" f={1} justifyContent="space-between" ai="center">
-                    <YStack flexShrink={1}>
-                      <Heading heading="h3" numberOfLines={3} textOverflow="ellipsis">
-                        {entity.organizationName}
-                      </Heading>
-                      {entity.demo && (
-                        <Paragraph variant="sub">
-                          <Trans
-                            id="trust.demoOrg"
-                            comment="Shown under the name of an organization to indicate that it is a demo"
-                          >
-                            Demo organization
-                          </Trans>
-                        </Paragraph>
-                      )}
-                    </YStack>
-                    <IconContainer
-                      icon={
-                        entity.demo ? (
-                          <HeroIcons.ExclamationTriangleFilled size={30} color="$warning-500" />
-                        ) : (
-                          <HeroIcons.CheckCircleFilled size={30} color="$positive-500" />
-                        )
-                      }
-                    />
+              {trustedEntities.map((entity) => {
+                const hasVeranaDetails = !!entity.veranaDetails
+                const onPress = hasVeranaDetails
+                  ? () =>
+                      router.push(
+                        `verana-trust?details=${encodeURIComponent(JSON.stringify(entity.veranaDetails))}&name=${encodeURIComponent(entity.organizationName)}`
+                      )
+                  : undefined
+                return (
+                  <XStack
+                    ai="center"
+                    key={entity.entityId}
+                    br="$8"
+                    p="$3.5"
+                    gap="$3"
+                    bg="$grey-100"
+                    onPress={onPress}
+                    pressStyle={hasVeranaDetails ? { bg: '$grey-200' } : undefined}
+                  >
+                    {entity.logoUri && (
+                      <Circle overflow="hidden" size="$4" bg="$grey-50">
+                        <Image src={entity.logoUri} height="100%" width="100%" />
+                      </Circle>
+                    )}
+                    <XStack gap="$2" display="flex" f={1} justifyContent="space-between" ai="center">
+                      <YStack flexShrink={1}>
+                        <Heading heading="h3" numberOfLines={3} textOverflow="ellipsis">
+                          {entity.organizationName}
+                        </Heading>
+                        {entity.demo ? (
+                          <Paragraph variant="sub">
+                            <Trans
+                              id="trust.demoOrg"
+                              comment="Shown under the name of an organization to indicate that it is a demo"
+                            >
+                              Demo organization
+                            </Trans>
+                          </Paragraph>
+                        ) : hasVeranaDetails ? (
+                          <Paragraph variant="sub">
+                            <Trans
+                              id="trust.veranaTapForDetails"
+                              comment="Shown under the Verana trust registry name to indicate the row is tappable"
+                            >
+                              Tap to view trust details
+                            </Trans>
+                          </Paragraph>
+                        ) : null}
+                      </YStack>
+                      <XStack ai="center" gap="$2">
+                        <IconContainer
+                          icon={
+                            entity.demo ? (
+                              <HeroIcons.ExclamationTriangleFilled size={30} color="$warning-500" />
+                            ) : (
+                              <HeroIcons.CheckCircleFilled size={30} color="$positive-500" />
+                            )
+                          }
+                        />
+                        {hasVeranaDetails && <HeroIcons.ChevronRight size={20} color="$grey-500" />}
+                      </XStack>
+                    </XStack>
                   </XStack>
-                </XStack>
-              ))}
+                )
+              })}
             </YStack>
           </YStack>
         </YStack>

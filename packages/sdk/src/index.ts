@@ -44,7 +44,15 @@ export type { TrustedDidEntity } from './trust/handlers/did'
 export type { TrustedOpenId4VciEntity } from './trust/handlers/fallback'
 export type { TrustList } from './trust/handlers/eudiRpAuthentication'
 export type { TrustedX509Entity } from './trust/handlers/x509'
-export type { TrustedEntity, TrustMechanism } from './trust/trustMechanism'
+export type { VeranaTrustResolution } from './trust/handlers/verana'
+export { fetchVeranaTrustDetails, resolveVeranaTrust } from './trust/handlers/verana'
+export type {
+  TrustedEntity,
+  TrustMechanism,
+  VeranaTrustCredential,
+  VeranaTrustDetails,
+  VeranaTrustMechanismConfiguration,
+} from './trust/trustMechanism'
 export type { CredentialCategoryMetadata } from './metadata/credentials'
 
 /**
