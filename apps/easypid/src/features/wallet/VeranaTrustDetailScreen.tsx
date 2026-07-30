@@ -27,7 +27,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import {
   ConditionRow,
   ExplorerLink,
+  DidRow,
   IdentityHeading,
+  LogoBadge,
   RegistryChip,
   SectionLabel,
   StepTick,
@@ -121,9 +123,7 @@ export function VeranaTrustDetailScreen({ details, name }: VeranaTrustDetailScre
 
       <ScrollView ref={scrollViewRef} onScroll={handleScroll} scrollEventThrottle={scrollEventThrottle}>
         <YStack px="$4" gap="$4" marginBottom={bottom} pt="$2">
-          <Paragraph variant="sub" color="$grey-500" numberOfLines={1}>
-            {details.did}
-          </Paragraph>
+          <DidRow did={details.did} verdict={verdict} />
 
           {isLoading ? (
             <Paragraph variant="sub" color="$grey-600">
@@ -134,16 +134,19 @@ export function VeranaTrustDetailScreen({ details, name }: VeranaTrustDetailScre
           <YStack>
             <ChainStep ok={serviceCredential?.result === 'VALID'} label="Service">
               {service ? (
-                <YStack gap="$1">
-                  <IdentityHeading name={service.name} />
+                <XStack gap="$3" ai="flex-start">
+                  <LogoBadge name={service.name} verified={Boolean(service.logo?.digest)} />
+                  <YStack gap="$1" flex={1}>
+                    <IdentityHeading name={service.name} />
                   {description.text ? <Paragraph color="$grey-700">{description.text}</Paragraph> : null}
-                  {description.removed > 0 ? (
-                    <Paragraph variant="sub" color="$grey-500">
-                      {description.removed} link{description.removed > 1 ? 's' : ''} removed from this description
-                      before display
-                    </Paragraph>
-                  ) : null}
-                </YStack>
+                    {description.removed > 0 ? (
+                      <Paragraph variant="sub" color="$grey-500">
+                        {description.removed} link{description.removed > 1 ? 's' : ''} removed from this
+                        description before display
+                      </Paragraph>
+                    ) : null}
+                  </YStack>
+                </XStack>
               ) : (
                 <Paragraph color="$danger-500" fontWeight="600">
                   No ECS-Service credential presented
@@ -153,15 +156,18 @@ export function VeranaTrustDetailScreen({ details, name }: VeranaTrustDetailScre
 
             <ChainStep ok={organizationCredential?.result === 'VALID'} label="Operated by" isLast>
               {organization ? (
-                <YStack gap="$2">
-                  <IdentityHeading name={organization.name} countryCode={organization.countryCode} />
-                  {organization.address ? (
-                    <Paragraph color="$grey-700">{organization.address}</Paragraph>
-                  ) : null}
-                  <XStack gap="$2" flexWrap="wrap">
-                    <RegistryChip label="REG" value={organization.registryId} />
-                  </XStack>
-                </YStack>
+                <XStack gap="$3" ai="flex-start">
+                  <LogoBadge name={organization.name} verified={Boolean(organization.logo?.digest)} />
+                  <YStack gap="$2" flex={1}>
+                    <IdentityHeading name={organization.name} countryCode={organization.countryCode} />
+                    {organization.address ? (
+                      <Paragraph color="$grey-700">{organization.address}</Paragraph>
+                    ) : null}
+                    <XStack gap="$2" flexWrap="wrap">
+                      <RegistryChip label="REG" value={organization.registryId} />
+                    </XStack>
+                  </YStack>
+                </XStack>
               ) : (
                 <YStack gap="$1">
                   <Paragraph color="$danger-500" fontWeight="600">
@@ -175,7 +181,14 @@ export function VeranaTrustDetailScreen({ details, name }: VeranaTrustDetailScre
             </ChainStep>
           </YStack>
 
-          <VerdictPill verdict={verdict} note={verdictNote} />
+          <VerdictPill
+            verdict={verdict}
+            note={
+              verdictNote && details.evaluatedAtBlock
+                ? `${verdictNote} · block ${details.evaluatedAtBlock.toLocaleString()}`
+                : verdictNote
+            }
+          />
 
           {hasConditions ? (
             <YStack gap="$2.5" bg="$grey-100" br="$6" p="$3.5">
@@ -209,6 +222,16 @@ export function VeranaTrustDetailScreen({ details, name }: VeranaTrustDetailScre
                 pressStyle={{ opacity: 0.6 }}
               >
                 <SectionLabel>Credential detail</SectionLabel>
+                <Paragraph
+                  variant="sub"
+                  color="$primary-600"
+                  fontWeight="700"
+                  bg="$primary-100"
+                  br="$10"
+                  px="$2"
+                >
+                  {credentials.reduce((n, c) => n + Object.keys(c.claims ?? {}).length, 0)}
+                </Paragraph>
                 <XStack ml="auto">
                   {showDetail ? (
                     <HeroIcons.ChevronUp size={16} color="$grey-500" />

@@ -1,7 +1,7 @@
 import { Circle, Heading, HeroIcons, Paragraph, XStack, YStack } from '@package/ui'
 import type { EcsAssetRef, EcsVerdict } from '@paradym/wallet-sdk'
 import { Linking } from 'react-native'
-import Svg, { Path, Rect } from 'react-native-svg'
+import Svg, { Defs, LinearGradient, Path, Rect, Stop, Text as SvgText } from 'react-native-svg'
 
 export const VERANA_EXPLORER = 'https://app.testnet.verana.network'
 
@@ -130,6 +130,68 @@ export function ExplorerLink({ did }: { did: string }) {
         Open this DID in Verana
       </Paragraph>
       <HeroIcons.ArrowUpRightFilled size={13} color="$primary-500" />
+    </XStack>
+  )
+}
+
+const LOGO_TONES = [
+  ['#0F766E', '#14B8A6'],
+  ['#1E3A8A', '#3B82F6'],
+  ['#7C2D12', '#EA580C'],
+  ['#4C1D95', '#7C3AED'],
+] as const
+
+const initialsOf = (name?: string) =>
+  (name ?? '?')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(word => word[0]?.toUpperCase() ?? '')
+    .join('') || '?'
+
+/** Stands in for `logoUri`, which no testnet service publishes yet. */
+export function LogoBadge({ name, verified }: { name?: string; verified?: boolean }) {
+  const initials = initialsOf(name)
+  const [from, to] = LOGO_TONES[initials.charCodeAt(0) % LOGO_TONES.length]
+  return (
+    <YStack width={40} height={40}>
+      <Svg width={40} height={40} viewBox="0 0 40 40">
+        <Defs>
+          <LinearGradient id={`logo-${initials}`} x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+            <Stop offset="0%" stopColor={from} />
+            <Stop offset="100%" stopColor={to} />
+          </LinearGradient>
+        </Defs>
+        <Rect width={40} height={40} rx={10} fill={`url(#logo-${initials})`} />
+        <SvgText
+          x={20}
+          y={26}
+          fontSize={initials.length > 1 ? 14 : 17}
+          fontWeight="bold"
+          fill="#ffffff"
+          textAnchor="middle"
+        >
+          {initials}
+        </SvgText>
+      </Svg>
+      {verified ? (
+        <Circle size={16} bg="$white" ai="center" jc="center" position="absolute" right={-4} bottom={-4}>
+          <HeroIcons.Check size={11} color="$positive-500" />
+        </Circle>
+      ) : null}
+    </YStack>
+  )
+}
+
+export function DidRow({ did, verdict }: { did: string; verdict: EcsVerdict }) {
+  const tone = VERDICT_TONE[verdict]
+  return (
+    <XStack ai="center" gap="$2">
+      <Circle size={8} bg={tone.color} />
+      <Paragraph variant="sub" color="$grey-500" numberOfLines={1} flexShrink={1}>
+        {did}
+      </Paragraph>
+      <VeranaMark size={19} />
     </XStack>
   )
 }
