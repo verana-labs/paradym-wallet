@@ -40,11 +40,11 @@ export function CountryFlag({ code, size = 16 }: { code?: string; size?: number 
     )
   }
 
-  return (
-    <Paragraph variant="sub" color="$grey-700" fontWeight="600">
-      {code}
-    </Paragraph>
-  )
+  const emoji = code
+    .toUpperCase()
+    .replace(/[A-Z]/g, letter => String.fromCodePoint(0x1f1e6 + letter.charCodeAt(0) - 65))
+
+  return <Paragraph fontSize={size + 3}>{emoji}</Paragraph>
 }
 
 export function StepTick({ ok }: { ok: boolean }) {
