@@ -1,6 +1,5 @@
 import { TextBackButton, useScrollViewPosition } from '@package/app'
 import {
-  Circle,
   FlexPage,
   HeaderContainer,
   Heading,
@@ -11,110 +10,71 @@ import {
   XStack,
   YStack,
 } from '@package/ui'
-import { fetchVeranaTrustDetails, type VeranaTrustCredential, type VeranaTrustDetails } from '@paradym/wallet-sdk'
+import {
+  deriveVerdict,
+  describeVerdict,
+  fetchVeranaTrustDetails,
+  findOrganizationCredential,
+  findServiceCredential,
+  readEcsOrganization,
+  readEcsService,
+  stripLinks,
+  type VeranaTrustCredential,
+  type VeranaTrustDetails,
+} from '@paradym/wallet-sdk'
 import { useEffect, useRef, useState } from 'react'
-import { Linking } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import {
+  ConditionRow,
+  ExplorerLink,
+  IdentityHeading,
+  RegistryChip,
+  SectionLabel,
+  StepTick,
+  VerdictPill,
+} from './VeranaTrustCard'
 
 export type VeranaTrustDetailScreenProps = {
   details: VeranaTrustDetails
   name?: string
 }
 
-const asString = (value: unknown): string | undefined =>
-  typeof value === 'string' && value.length > 0 ? value : undefined
-
-const asHttpUrl = (value: unknown): string | undefined => {
-  const url = asString(value)
-  if (!url) return undefined
-
-  try {
-    const parsed = new URL(url)
-    return parsed.protocol === 'https:' || parsed.protocol === 'http:' ? parsed.toString() : undefined
-  } catch {
-    return undefined
-  }
-}
-
-const shortenDid = (did: string): string => {
-  const parts = did.split(':')
-  const host = parts[parts.length - 1]
-  return host || did
-}
-
-const ecsTypeLabel = (ecsType?: string): string => {
-  switch (ecsType) {
-    case 'ECS-SERVICE':
-      return 'Service'
-    case 'ECS-ORG':
-      return 'Organization'
-    case 'ECS-PERSON':
-      return 'Person'
-    default:
-      return ecsType ?? 'Credential'
-  }
-}
-
-function Field({ label, value }: { label: string; value?: string }) {
-  if (!value) return null
+function ChainStep({
+  ok,
+  label,
+  isLast,
+  children,
+}: {
+  ok: boolean
+  label: string
+  isLast?: boolean
+  children: React.ReactNode
+}) {
   return (
-    <YStack gap="$1">
-      <Paragraph variant="sub" color="$grey-600">
-        {label}
-      </Paragraph>
-      <Paragraph>{value}</Paragraph>
-    </YStack>
+    <XStack gap="$3">
+      <YStack ai="center" width={28}>
+        <StepTick ok={ok} />
+        {!isLast ? <YStack flex={1} width={2} bg={ok ? '$positive-300' : '$grey-300'} minHeight={16} /> : null}
+      </YStack>
+      <YStack flex={1} pb={isLast ? '$0' : '$4'} gap="$1">
+        <SectionLabel>{label}</SectionLabel>
+        {children}
+      </YStack>
+    </XStack>
   )
 }
 
-function LinkField({ label, url }: { label: string; url?: string }) {
-  if (!url) return null
+function ClaimRow({ name, value }: { name: string; value?: string | number }) {
+  if (value === undefined || value === '') return null
   return (
-    <YStack gap="$1">
-      <Paragraph variant="sub" color="$grey-600">
-        {label}
+    <XStack gap="$3" ai="flex-start">
+      <Paragraph variant="sub" color="$primary-600" width={132} flexShrink={0}>
+        {name}
       </Paragraph>
-      <XStack ai="center" gap="$1.5" onPress={() => Linking.openURL(url)} pressStyle={{ opacity: 0.6 }}>
-        <Paragraph color="$primary-500" numberOfLines={1} flexShrink={1}>
-          {url}
-        </Paragraph>
-        <HeroIcons.InformationCircle size={16} color="$primary-500" />
-      </XStack>
-    </YStack>
-  )
-}
-
-function CredentialCard({ credential }: { credential: VeranaTrustCredential }) {
-  const claims = credential.claims ?? {}
-  const isService = credential.ecsType === 'ECS-SERVICE'
-  return (
-    <YStack gap="$3" br="$8" p="$4" bg="$grey-100">
-      <XStack ai="center" gap="$2.5">
-        <Circle size="$4" ai="center" jc="center" bg="$grey-50">
-          {isService ? (
-            <HeroIcons.GlobeAlt color="$grey-700" size={20} />
-          ) : (
-            <HeroIcons.BuildingOffice color="$grey-700" size={20} />
-          )}
-        </Circle>
-        <YStack flexShrink={1}>
-          <Heading heading="h3">{asString(claims.name) ?? ecsTypeLabel(credential.ecsType)}</Heading>
-          <Paragraph variant="sub" color="$grey-600">
-            {ecsTypeLabel(credential.ecsType)} credential · {credential.result ?? 'VALID'}
-          </Paragraph>
-        </YStack>
-        <HeroIcons.CheckCircleFilled size={22} color="$positive-500" />
-      </XStack>
-
-      <Field label="Description" value={asString(claims.description)} />
-      <Field label="Type" value={asString(claims.type)} />
-      <Field label="Legal name" value={isService ? undefined : asString(claims.name)} />
-      <Field label="Address" value={asString(claims.address)} />
-      <Field label="Registry ID" value={asString(claims.registryId)} />
-      <Field label="Country" value={asString(claims.countryCode)} />
-      <LinkField label="Privacy policy" url={asHttpUrl(claims.privacyPolicy)} />
-      <LinkField label="Terms & conditions" url={asHttpUrl(claims.termsAndConditions)} />
-    </YStack>
+      <Paragraph variant="sub" color="$grey-700" flexShrink={1}>
+        {String(value)}
+      </Paragraph>
+    </XStack>
   )
 }
 
@@ -123,10 +83,9 @@ export function VeranaTrustDetailScreen({ details, name }: VeranaTrustDetailScre
   const { bottom } = useSafeAreaInsets()
   const scrollViewRef = useRef<ScrollViewRefType>(null)
 
-  // The trust decision carries only the summary. Fetch the full evaluation (Verifiable Trust
-  // Credentials, ecosystem chain) here, off the presentation critical path.
   const [credentials, setCredentials] = useState<VeranaTrustCredential[]>(details.credentials)
   const [isLoading, setIsLoading] = useState(details.credentials.length === 0)
+  const [showDetail, setShowDetail] = useState(false)
 
   useEffect(() => {
     if (details.credentials.length > 0) return
@@ -136,7 +95,7 @@ export function VeranaTrustDetailScreen({ details, name }: VeranaTrustDetailScre
         const full = await fetchVeranaTrustDetails(details.resolverUrl, details.did)
         if (!cancelled) setCredentials(full?.credentials ?? [])
       } catch {
-        // leave credentials empty on failure; the verdict + ecosystem still render
+        // leave credentials empty on failure; the verdict still renders
       } finally {
         if (!cancelled) setIsLoading(false)
       }
@@ -146,7 +105,15 @@ export function VeranaTrustDetailScreen({ details, name }: VeranaTrustDetailScre
     }
   }, [details.did, details.resolverUrl, details.credentials.length])
 
-  const ecosystemIssuer = credentials.find((c) => c.issuedBy)?.issuedBy
+  const serviceCredential = findServiceCredential(credentials)
+  const organizationCredential = findOrganizationCredential(credentials)
+  const service = readEcsService(serviceCredential)
+  const organization = readEcsOrganization(organizationCredential)
+
+  const verdict = credentials.length > 0 ? deriveVerdict(credentials) : details.trustStatus
+  const verdictNote = credentials.length > 0 ? describeVerdict(verdict, credentials) : undefined
+  const description = stripLinks(service?.description)
+  const hasConditions = Boolean(service?.terms || service?.privacy || service?.minimumAgeRequired)
 
   return (
     <FlexPage gap="$0" paddingHorizontal="$0">
@@ -154,72 +121,141 @@ export function VeranaTrustDetailScreen({ details, name }: VeranaTrustDetailScre
 
       <ScrollView ref={scrollViewRef} onScroll={handleScroll} scrollEventThrottle={scrollEventThrottle}>
         <YStack px="$4" gap="$4" marginBottom={bottom} pt="$2">
-          {/* Verdict header */}
-          <YStack gap="$3" br="$8" p="$4" bg="$positive-100">
-            <XStack ai="center" gap="$2.5">
-              <Circle size="$4" ai="center" jc="center" bg="$positive-500">
-                <HeroIcons.ShieldCheck color="$white" size={22} />
-              </Circle>
-              <YStack flexShrink={1}>
-                <Heading heading="h2">{details.trustStatus === 'TRUSTED' ? 'Trusted' : details.trustStatus}</Heading>
-                <Paragraph variant="sub" color="$grey-700">
-                  Resolved live via the Verana trust registry
-                </Paragraph>
-              </YStack>
-            </XStack>
-            <XStack flexWrap="wrap" gap="$2">
-              <YStack gap="$1" flexBasis="45%">
-                <Paragraph variant="sub" color="$grey-600">
-                  Network
-                </Paragraph>
-                <Paragraph>{details.production ? 'Production' : 'Test'}</Paragraph>
-              </YStack>
-              {details.evaluatedAtBlock ? (
-                <YStack gap="$1" flexBasis="45%">
-                  <Paragraph variant="sub" color="$grey-600">
-                    Evaluated at block
-                  </Paragraph>
-                  <Paragraph>{details.evaluatedAtBlock.toLocaleString()}</Paragraph>
-                </YStack>
-              ) : null}
-            </XStack>
-          </YStack>
+          <Paragraph variant="sub" color="$grey-500" numberOfLines={1}>
+            {details.did}
+          </Paragraph>
 
-          {/* Verifiable Trust Credentials */}
-          {credentials.length > 0 ? (
-            <YStack gap="$2">
-              <Heading heading="sub2">Verifiable trust credentials</Heading>
-              {credentials.map((credential, index) => (
-                <CredentialCard key={`${credential.ecsType}-${index}`} credential={credential} />
-              ))}
-            </YStack>
-          ) : isLoading ? (
+          {isLoading ? (
             <Paragraph variant="sub" color="$grey-600">
-              Loading trust credentials…
+              Resolving trust credentials…
             </Paragraph>
           ) : null}
 
-          {/* Ecosystem / issued by */}
-          {ecosystemIssuer ? (
-            <YStack gap="$2">
-              <Heading heading="sub2">Ecosystem authority</Heading>
-              <YStack gap="$2" br="$8" p="$4" bg="$grey-100">
-                <XStack ai="center" gap="$2.5">
-                  <Circle size="$4" ai="center" jc="center" bg="$grey-50">
-                    <HeroIcons.Identification color="$grey-700" size={20} />
-                  </Circle>
-                  <YStack flexShrink={1}>
-                    <Heading heading="h3">{shortenDid(ecosystemIssuer)}</Heading>
-                    <Paragraph variant="sub" color="$grey-600">
-                      Issued the trust credentials
+          <YStack>
+            <ChainStep ok={serviceCredential?.result === 'VALID'} label="Service">
+              {service ? (
+                <YStack gap="$1">
+                  <IdentityHeading name={service.name} />
+                  {description.text ? <Paragraph color="$grey-700">{description.text}</Paragraph> : null}
+                  {description.removed > 0 ? (
+                    <Paragraph variant="sub" color="$grey-500">
+                      {description.removed} link{description.removed > 1 ? 's' : ''} removed from this description
+                      before display
                     </Paragraph>
-                  </YStack>
+                  ) : null}
+                </YStack>
+              ) : (
+                <Paragraph color="$danger-500" fontWeight="600">
+                  No ECS-Service credential presented
+                </Paragraph>
+              )}
+            </ChainStep>
+
+            <ChainStep ok={organizationCredential?.result === 'VALID'} label="Operated by" isLast>
+              {organization ? (
+                <YStack gap="$2">
+                  <IdentityHeading name={organization.name} countryCode={organization.countryCode} />
+                  {organization.address ? (
+                    <Paragraph color="$grey-700">{organization.address}</Paragraph>
+                  ) : null}
+                  <XStack gap="$2" flexWrap="wrap">
+                    <RegistryChip label="REG" value={organization.registryId} />
+                  </XStack>
+                </YStack>
+              ) : (
+                <YStack gap="$1">
+                  <Paragraph color="$danger-500" fontWeight="600">
+                    No ECS-Organization credential presented
+                  </Paragraph>
+                  <Paragraph variant="sub" color="$grey-500">
+                    Nothing verifies who operates this service
+                  </Paragraph>
+                </YStack>
+              )}
+            </ChainStep>
+          </YStack>
+
+          <VerdictPill verdict={verdict} note={verdictNote} />
+
+          {hasConditions ? (
+            <YStack gap="$2.5" bg="$grey-100" br="$6" p="$3.5">
+              <SectionLabel>Conditions of connecting</SectionLabel>
+              {service?.minimumAgeRequired ? (
+                <XStack ai="center" gap="$2">
+                  <Paragraph color="$warning-600" fontWeight="800">
+                    {service.minimumAgeRequired}+
+                  </Paragraph>
+                  <Paragraph color="$grey-700" flexShrink={1}>
+                    This service requires you to be at least {service.minimumAgeRequired} to connect
+                  </Paragraph>
                 </XStack>
-                <Field label="Registry DID" value={ecosystemIssuer} />
-                <Field label="Subject DID" value={details.did} />
-              </YStack>
+              ) : (
+                <XStack ai="center" gap="$2">
+                  <HeroIcons.InformationCircle size={14} color="$grey-500" />
+                  <Paragraph color="$grey-700">No age restriction</Paragraph>
+                </XStack>
+              )}
+              <ConditionRow asset={service?.terms} label="Terms & conditions" />
+              <ConditionRow asset={service?.privacy} label="Privacy policy" />
             </YStack>
           ) : null}
+
+          {credentials.length > 0 ? (
+            <YStack gap="$2">
+              <XStack
+                ai="center"
+                gap="$2"
+                onPress={() => setShowDetail((open) => !open)}
+                pressStyle={{ opacity: 0.6 }}
+              >
+                <SectionLabel>Credential detail</SectionLabel>
+                <XStack ml="auto">
+                  {showDetail ? (
+                    <HeroIcons.ChevronUp size={16} color="$grey-500" />
+                  ) : (
+                    <HeroIcons.ChevronDown size={16} color="$grey-500" />
+                  )}
+                </XStack>
+              </XStack>
+
+              {showDetail ? (
+                <YStack gap="$3">
+                  {service ? (
+                    <YStack gap="$1.5" bg="$grey-100" br="$6" p="$3.5">
+                      <Heading heading="sub2">ECS-Service</Heading>
+                      <ClaimRow name="id" value={service.id} />
+                      <ClaimRow name="name" value={service.name} />
+                      <ClaimRow name="type" value={service.type} />
+                      <ClaimRow name="description" value={service.description} />
+                      <ClaimRow name="descriptionFormat" value={service.descriptionFormat} />
+                      <ClaimRow name="logoUri" value={service.logo?.uri ?? 'not presented'} />
+                      <ClaimRow name="logoDigestSri" value={service.logo?.digest ?? 'not presented'} />
+                      <ClaimRow name="minimumAgeRequired" value={service.minimumAgeRequired} />
+                      <ClaimRow name="termsAndConditionsUri" value={service.terms?.uri} />
+                      <ClaimRow name="privacyPolicyUri" value={service.privacy?.uri} />
+                    </YStack>
+                  ) : null}
+
+                  {organization ? (
+                    <YStack gap="$1.5" bg="$grey-100" br="$6" p="$3.5">
+                      <Heading heading="sub2">ECS-Organization</Heading>
+                      <ClaimRow name="id" value={organization.id} />
+                      <ClaimRow name="name" value={organization.name} />
+                      <ClaimRow name="logoUri" value={organization.logo?.uri ?? 'not presented'} />
+                      <ClaimRow name="registryId" value={organization.registryId} />
+                      <ClaimRow name="address" value={organization.address} />
+                      <ClaimRow name="countryCode" value={organization.countryCode} />
+                      <ClaimRow name="legalJurisdiction" value={organization.legalJurisdiction} />
+                      <ClaimRow name="organizationKind" value={organization.organizationKind} />
+                      <ClaimRow name="lei" value={organization.lei} />
+                    </YStack>
+                  ) : null}
+                </YStack>
+              ) : null}
+            </YStack>
+          ) : null}
+
+          <ExplorerLink did={details.did} />
         </YStack>
       </ScrollView>
 

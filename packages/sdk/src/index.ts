@@ -46,6 +46,16 @@ export type { TrustList } from './trust/handlers/eudiRpAuthentication'
 export type { TrustedX509Entity } from './trust/handlers/x509'
 export type { VeranaTrustResolution } from './trust/handlers/verana'
 export { fetchVeranaTrustDetails, resolveVeranaTrust } from './trust/handlers/verana'
+export type { EcsAssetRef, EcsOrganization, EcsService, EcsVerdict } from './trust/ecs'
+export {
+  deriveVerdict,
+  describeVerdict,
+  findOrganizationCredential,
+  findServiceCredential,
+  readEcsOrganization,
+  readEcsService,
+  stripLinks,
+} from './trust/ecs'
 export type {
   TrustedEntity,
   TrustMechanism,

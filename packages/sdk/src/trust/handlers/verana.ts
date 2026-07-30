@@ -113,8 +113,11 @@ export const fetchVeranaTrustDetails = async (
   resolverUrl: string,
   did: string
 ): Promise<VeranaTrustDetails | undefined> => {
+  // Unlike resolveVeranaTrust, which must stay TRUSTED-only so a half-verified peer is
+  // never claimed as trusted on the consent screen, the detail screen has to render
+  // PARTIAL and UNTRUSTED: the failures are the content.
   const resolution = await fetchResolution(resolverUrl, did, 'full')
-  if (resolution?.trustStatus !== 'TRUSTED') return undefined
+  if (!resolution) return undefined
 
   return {
     ...resolution,
