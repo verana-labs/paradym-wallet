@@ -38,6 +38,13 @@ export type VeranaAccreditation = {
 
 const PERMISSION_TIMEOUT_MS = 10_000
 
+// The VPR list endpoints ignore `pagination.*` entirely - an offset silently returns page one -
+// and default to 64 records. `response_max_size` is the parameter that actually widens the
+// response. Reading the default would make an accredited issuer beyond record 64 look
+// unaccredited, so the ceiling is requested explicitly and a full page is treated as truncated
+// rather than complete.
+const RESPONSE_MAX_SIZE = 1000
+
 const asString = (value: unknown): string | undefined =>
   typeof value === 'string' && value.length > 0 ? value : undefined
 
@@ -144,7 +151,7 @@ export const fetchSchemas = async (apiUrl: string): Promise<VeranaSchema[] | und
 
   try {
     const response = await fetch(
-      `${apiUrl.replace(/\/$/, '')}/verana/cs/v1/list?pagination.limit=500`,
+      `${apiUrl.replace(/\/$/, '')}/verana/cs/v1/list?response_max_size=${RESPONSE_MAX_SIZE}`,
       { signal: controller.signal }
     )
     if (!response.ok) return undefined
@@ -214,7 +221,7 @@ export const fetchPermissions = async (
 
   try {
     const response = await fetch(
-      `${apiUrl.replace(/\/$/, '')}/verana/perm/v1/list?pagination.limit=${options?.limit ?? 500}`,
+      `${apiUrl.replace(/\/$/, '')}/verana/perm/v1/list?response_max_size=${options?.limit ?? RESPONSE_MAX_SIZE}`,
       { signal: controller.signal }
     )
     if (!response.ok) return undefined
