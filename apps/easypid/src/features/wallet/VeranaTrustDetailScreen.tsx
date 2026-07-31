@@ -11,7 +11,6 @@ import {
   YStack,
 } from '@package/ui'
 import {
-  deriveVerdict,
   describeVerdict,
   fetchVeranaTrustDetails,
   findOrganizationCredential,
@@ -112,7 +111,12 @@ export function VeranaTrustDetailScreen({ details, name }: VeranaTrustDetailScre
   const service = readEcsService(serviceCredential)
   const organization = readEcsOrganization(organizationCredential)
 
-  const verdict = credentials.length > 0 ? deriveVerdict(credentials) : details.trustStatus
+  // The resolver's verdict is authoritative and is never recomputed from the raw credentials.
+  // The demo cast proves why: `demo-untrusted` presents ECS-Service and ECS-Organization both
+  // VALID and still resolves UNTRUSTED, because a credential being valid is not the same as its
+  // issuer being trusted. Deriving locally would upgrade that to TRUSTED, which is [UW-POT-5]'s
+  // "must not invent trust signals" in its most damaging form.
+  const verdict = details.trustStatus
   const verdictNote = credentials.length > 0 ? describeVerdict(verdict, credentials) : undefined
   const description = stripLinks(service?.description)
   const hasConditions = Boolean(service?.terms || service?.privacy || service?.minimumAgeRequired)
