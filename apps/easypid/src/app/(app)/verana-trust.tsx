@@ -2,6 +2,11 @@ import { VeranaTrustDetailScreen } from '@easypid/features/wallet/VeranaTrustDet
 import type { VeranaTrustDetails } from '@paradym/wallet-sdk'
 import { Redirect, useLocalSearchParams } from 'expo-router'
 
+// Gating this on TRUSTED redirected the user away from the one screen that explains a
+// failure. [UW-POT-6]: a failed verdict is content, not an edge case.
+const isTrustStatus = (value: unknown): value is VeranaTrustDetails['trustStatus'] =>
+  value === 'TRUSTED' || value === 'PARTIAL' || value === 'UNTRUSTED'
+
 const parseDetails = (value?: string): VeranaTrustDetails | undefined => {
   if (!value) return undefined
 
@@ -15,7 +20,7 @@ const parseDetails = (value?: string): VeranaTrustDetails | undefined => {
       !('resolverUrl' in parsed) ||
       typeof parsed.resolverUrl !== 'string' ||
       !('trustStatus' in parsed) ||
-      parsed.trustStatus !== 'TRUSTED' ||
+      !isTrustStatus(parsed.trustStatus) ||
       !('production' in parsed) ||
       typeof parsed.production !== 'boolean' ||
       !('credentials' in parsed) ||

@@ -181,14 +181,7 @@ export function VeranaTrustDetailScreen({ details, name }: VeranaTrustDetailScre
             </ChainStep>
           </YStack>
 
-          <VerdictPill
-            verdict={verdict}
-            note={
-              verdictNote && details.evaluatedAtBlock
-                ? `${verdictNote} · block ${details.evaluatedAtBlock.toLocaleString()}`
-                : verdictNote
-            }
-          />
+          <VerdictPill verdict={verdict} note={verdictNote} />
 
           {hasConditions ? (
             <YStack gap="$2.5" bg="$grey-100" br="$6" p="$3.5">

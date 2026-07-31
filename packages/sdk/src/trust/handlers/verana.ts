@@ -97,17 +97,16 @@ export type GetTrustedEntitiesForVeranaForOpenId4VciOptions = {
   walletTrustedEntity?: TrustedEntity
 }
 
-// Fast trust decision on detail=summary (a cached DB lookup). Any non-ok response, network failure
-// or non-TRUSTED status resolves to undefined so the caller falls back to the next trust mechanism
-// instead of displaying unverified trust. The richer detail=full evaluation (Verifiable Trust
-// Credentials, ecosystem chain) is fetched lazily by the detail screen, off the critical path.
+// Fast trust decision on detail=summary (a cached DB lookup). A resolution is returned whatever
+// its verdict: [UW-POT-6] requires UNTRUSTED to be shown and never softened, so discarding it here
+// and falling through to the next trust mechanism would surface "unknown organization" for a peer
+// the registry explicitly does not vouch for. Only an unreachable or malformed resolver yields
+// undefined, which the caller renders as UNVERIFIED per [UW-RES-6]. The richer detail=full
+// evaluation is fetched lazily by the detail screen, off the critical path.
 export const resolveVeranaTrust = async (
   resolverUrl: string,
   did: string
-): Promise<VeranaTrustResolution | undefined> => {
-  const resolution = await fetchResolution(resolverUrl, did, 'summary')
-  return resolution?.trustStatus === 'TRUSTED' ? resolution : undefined
-}
+): Promise<VeranaTrustResolution | undefined> => fetchResolution(resolverUrl, did, 'summary')
 
 export const fetchVeranaTrustDetails = async (
   resolverUrl: string,
