@@ -270,7 +270,6 @@ export function VeranaTrustDetailScreen({ details, name }: VeranaTrustDetailScre
                       <ClaimRow name="countryCode" value={organization.countryCode} />
                       <ClaimRow name="legalJurisdiction" value={organization.legalJurisdiction} />
                       <ClaimRow name="organizationKind" value={organization.organizationKind} />
-                      <ClaimRow name="lei" value={organization.lei} />
                     </YStack>
                   ) : null}
                 </YStack>
