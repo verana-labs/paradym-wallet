@@ -66,6 +66,12 @@ export const VerifyPartySlide = ({
       demo: isDemoTrustedEntity ? true : entity.demo,
     }))
 
+  // The registry verdict belongs on this screen: it is the one every user sees before
+  // deciding. Counting the entity as one more approver hides the difference between a
+  // service the registry vouches for and one it explicitly does not.
+  const veranaEntity = trustedEntities?.find((entity) => entity.veranaDetails)
+  const veranaVerdict = veranaEntity?.veranaDetails?.trustStatus
+
   const handleContinue = async () => {
     setIsLoading(true)
     if (onContinue) {
@@ -174,7 +180,37 @@ export const VerifyPartySlide = ({
         </YStack>
 
         <YStack gap="$4">
-          {trustedEntitiesWithoutSelf && (trustedEntitiesWithoutSelf.length > 0 || entityIsTrustAnchor) ? (
+          {veranaVerdict ? (
+            <InfoButton
+              variant={
+                veranaVerdict === 'TRUSTED' ? 'positive' : veranaVerdict === 'PARTIAL' ? 'warning' : 'danger'
+              }
+              title={
+                veranaVerdict === 'TRUSTED'
+                  ? t({ id: 'verifyPartySlide.veranaTrustedTitle', message: 'Verified organization' })
+                  : veranaVerdict === 'PARTIAL'
+                    ? t({ id: 'verifyPartySlide.veranaPartialTitle', message: 'Partially verified' })
+                    : t({ id: 'verifyPartySlide.veranaUntrustedTitle', message: 'Not trusted' })
+              }
+              description={
+                veranaVerdict === 'TRUSTED'
+                  ? t({
+                      id: 'verifyPartySlide.veranaTrustedDescription',
+                      message: 'Both identity checks verified against the Verana public registry',
+                    })
+                  : veranaVerdict === 'PARTIAL'
+                    ? t({
+                        id: 'verifyPartySlide.veranaPartialDescription',
+                        message: 'Only one of the two identity checks verified',
+                      })
+                    : t({
+                        id: 'verifyPartySlide.veranaUntrustedDescription',
+                        message: 'The Verana public registry does not vouch for this service',
+                      })
+              }
+              onPress={onPressVerifiedIssuer}
+            />
+          ) : trustedEntitiesWithoutSelf && (trustedEntitiesWithoutSelf.length > 0 || entityIsTrustAnchor) ? (
             <InfoButton
               variant={entityIsTrustAnchor ? 'positive' : 'info'}
               title={t({
