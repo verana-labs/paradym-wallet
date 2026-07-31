@@ -45,6 +45,8 @@ export type VeranaTrustDetails = {
   expiresAt?: string
   /** Resolver base URL, so the detail screen can lazily fetch the full evaluation (credentials, ecosystem). */
   resolverUrl: string
+  /** VPR REST base URL. The resolver answers Q1 only; issuer and verifier permissions live here. */
+  apiUrl?: string
   credentials: VeranaTrustCredential[]
 }
 
@@ -89,6 +91,8 @@ export type DidTrustMechanismConfiguration = {
 export type VeranaTrustMechanismConfiguration = {
   trustMechanism: 'verana'
   resolverUrl: string
+  /** VPR REST base URL, required to answer Q2/Q3. Without it the wallet resolves Q1 only. */
+  apiUrl?: string
   registryDisplay?: {
     organizationName?: string
     logoUri?: string

@@ -35,6 +35,7 @@ export const paradymWalletSdkOptions: SetupParadymWalletSdkOptions = {
     {
       trustMechanism: 'verana',
       resolverUrl: 'https://resolver.testnet.verana.network',
+      apiUrl: 'https://api.testnet.verana.network',
       registryDisplay: { organizationName: 'Verana Trust Registry', uri: 'https://verana.io' },
     },
     { trustMechanism: 'did', trustedDidEntities },

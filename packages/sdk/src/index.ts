@@ -50,12 +50,16 @@ export type {
   VeranaAccreditation,
   VeranaPermission,
   VeranaPermissionType,
+  VeranaSchema,
 } from './trust/handlers/veranaPermissions'
 export {
   fetchPermissions,
+  fetchSchemas,
   findAccreditation,
+  findSchemaId,
   isPermissionActive,
   resolveAccreditation,
+  schemaIdFromVct,
 } from './trust/handlers/veranaPermissions'
 export type { EcsAssetRef, EcsOrganization, EcsService, EcsVerdict } from './trust/ecs'
 export {

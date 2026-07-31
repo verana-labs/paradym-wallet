@@ -118,6 +118,93 @@ export const findAccreditation = (
   return { role: options.role, granted: false, schemaId: options.schemaId, reason }
 }
 
+export type VeranaSchema = {
+  /** VPR schema id, the value permissions key off. */
+  id: string
+  /** Trust registry (ecosystem) id. */
+  trustRegistryId?: string
+  title?: string
+  /** `vpr:verana:<chain>/cs/v1/js/<id>`, the `$id` of the published JSON schema. */
+  vprId?: string
+}
+
+/**
+ * A credential offer names its type with a `vct` (SD-JWT VC) or a schema URI. When that value is
+ * the VPR schema `$id`, the schema id is the last path segment and no lookup is needed.
+ */
+export const schemaIdFromVct = (vct?: string): string | undefined => {
+  if (!vct) return undefined
+  const match = /\/cs\/v\d+\/js\/(\d+)\b/.exec(vct)
+  return match?.[1]
+}
+
+export const fetchSchemas = async (apiUrl: string): Promise<VeranaSchema[] | undefined> => {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), PERMISSION_TIMEOUT_MS)
+
+  try {
+    const response = await fetch(
+      `${apiUrl.replace(/\/$/, '')}/verana/cs/v1/list?pagination.limit=500`,
+      { signal: controller.signal }
+    )
+    if (!response.ok) return undefined
+
+    const body: unknown = await response.json()
+    if (!isRecord(body) || !Array.isArray(body.schemas)) return undefined
+
+    return body.schemas.flatMap((entry): VeranaSchema[] => {
+      if (!isRecord(entry)) return []
+      const id = asString(entry.id)
+      if (!id) return []
+
+      let title: string | undefined
+      let vprId: string | undefined
+      const raw = asString(entry.json_schema)
+      if (raw) {
+        try {
+          const parsed: unknown = JSON.parse(raw)
+          if (isRecord(parsed)) {
+            title = asString(parsed.title)
+            vprId = asString(parsed.$id)
+          }
+        } catch {
+          // a malformed schema still has a usable id; only its title is lost
+        }
+      }
+      return [{ id, trustRegistryId: asString(entry.tr_id), title, vprId }]
+    })
+  } catch {
+    return undefined
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
+/**
+ * Prefer the `$id`, which is exact. Falling back to the title is a convenience for offers that
+ * name their type in prose, and is only trusted when exactly one schema carries that title -
+ * `ServiceCredential` alone is registered a dozen times over.
+ */
+export const findSchemaId = (
+  schemas: VeranaSchema[],
+  options: { vct?: string; title?: string }
+): string | undefined => {
+  const direct = schemaIdFromVct(options.vct)
+  if (direct) return direct
+
+  if (options.vct) {
+    const byVprId = schemas.find((schema) => schema.vprId === options.vct)
+    if (byVprId) return byVprId.id
+  }
+
+  if (options.title) {
+    const byTitle = schemas.filter((schema) => schema.title === options.title)
+    if (byTitle.length === 1) return byTitle[0].id
+  }
+
+  return undefined
+}
+
 export const fetchPermissions = async (
   apiUrl: string,
   options?: { limit?: number }
@@ -151,10 +238,23 @@ export const fetchPermissions = async (
  */
 export const resolveAccreditation = async (
   apiUrl: string,
-  options: { did: string; schemaId: string; role: 'ISSUER' | 'VERIFIER' }
+  options: { did: string; role: 'ISSUER' | 'VERIFIER'; schemaId?: string; vct?: string; title?: string }
 ): Promise<VeranaAccreditation | undefined> => {
+  let schemaId = options.schemaId ?? schemaIdFromVct(options.vct)
+
+  if (!schemaId) {
+    const schemas = await fetchSchemas(apiUrl)
+    if (!schemas) return undefined
+    schemaId = findSchemaId(schemas, { vct: options.vct, title: options.title })
+  }
+
+  // Not knowing which schema was offered is not evidence of anything. Titles alone are
+  // ambiguous - `ServiceCredential` is registered a dozen times over - so an unresolved schema
+  // stays undefined rather than becoming an accusation the wallet cannot support.
+  if (!schemaId) return undefined
+
   const permissions = await fetchPermissions(apiUrl)
   if (!permissions) return undefined
 
-  return findAccreditation(permissions, options)
+  return findAccreditation(permissions, { did: options.did, schemaId, role: options.role })
 }

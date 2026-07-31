@@ -351,6 +351,7 @@ export function FunkeCredentialNotificationScreen() {
               }
               trustMechanism={resolvedCredentialOffer.trustMechanism}
               trustedEntities={resolvedCredentialOffer.trustedEntities}
+              credentialType={{ title: resolvedCredentialOffer.credentialDisplay?.name }}
             />
           ),
         },

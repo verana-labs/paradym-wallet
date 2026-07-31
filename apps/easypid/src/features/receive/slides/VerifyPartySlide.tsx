@@ -15,10 +15,10 @@ import {
   YStack,
 } from '@package/ui'
 import { formatRelativeDate } from '@package/utils'
-import type { DisplayImage, TrustedEntity, TrustMechanism } from '@paradym/wallet-sdk'
-import { useActivities } from '@paradym/wallet-sdk'
+import type { DisplayImage, TrustedEntity, TrustMechanism, VeranaAccreditation } from '@paradym/wallet-sdk'
+import { resolveAccreditation, useActivities } from '@paradym/wallet-sdk'
 import { useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 const NO_ENTITY_ID = 'NO_ENTITY_ID'
 
@@ -33,6 +33,8 @@ interface VerifyPartySlideProps {
   onDecline?: () => void
   trustedEntities?: Array<TrustedEntity>
   trustMechanism?: TrustMechanism
+  /** The credential being offered or requested, so Q2/Q3 can be asked for its schema. */
+  credentialType?: { vct?: string; title?: string }
 }
 
 export const VerifyPartySlide = ({
@@ -45,6 +47,7 @@ export const VerifyPartySlide = ({
   onDecline,
   trustedEntities,
   trustMechanism = 'none',
+  credentialType,
 }: VerifyPartySlideProps) => {
   const router = useRouter()
   const media = useMedia()
@@ -71,6 +74,34 @@ export const VerifyPartySlide = ({
   // service the registry vouches for and one it explicitly does not.
   const veranaEntity = trustedEntities?.find((entity) => entity.veranaDetails)
   const veranaVerdict = veranaEntity?.veranaDetails?.trustStatus
+
+  // Q2 on an offer, Q3 on a request ([UW-RES-2]/[UW-RES-3]): being a trusted service says
+  // nothing about being allowed to issue or ask for *this* credential. `undefined` stays
+  // undefined - an unreachable registry is not a refusal ([UW-RES-6]).
+  const [accreditation, setAccreditation] = useState<VeranaAccreditation>()
+  const veranaApiUrl = veranaEntity?.veranaDetails?.apiUrl
+  const accreditationRole = type === 'offer' ? 'ISSUER' : 'VERIFIER'
+  const shouldCheckAccreditation =
+    Boolean(veranaApiUrl) && entityId !== NO_ENTITY_ID && (type === 'offer' || type === 'request')
+
+  useEffect(() => {
+    if (!shouldCheckAccreditation || !veranaApiUrl) return
+    let cancelled = false
+    void resolveAccreditation(veranaApiUrl, {
+      did: entityId,
+      role: accreditationRole,
+      vct: credentialType?.vct,
+      title: credentialType?.title,
+    }).then((result) => {
+      if (!cancelled) setAccreditation(result)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [shouldCheckAccreditation, veranaApiUrl, entityId, accreditationRole, credentialType?.vct, credentialType?.title])
+
+  // [UW-POT-2]/[UW-POT-3]: a failed Q2 or Q3 must not leave accept as the default action.
+  const accreditationBlocks = accreditation?.granted === false
 
   const handleContinue = async () => {
     setIsLoading(true)
@@ -243,6 +274,34 @@ export const VerifyPartySlide = ({
               onPress={onPressVerifiedIssuer}
             />
           )}
+          {accreditation ? (
+            <InfoButton
+              variant={accreditation.granted ? 'positive' : 'danger'}
+              title={
+                accreditation.granted
+                  ? type === 'offer'
+                    ? t({ id: 'verifyPartySlide.q2PassTitle', message: 'Authorized issuer' })
+                    : t({ id: 'verifyPartySlide.q3PassTitle', message: 'Authorized verifier' })
+                  : type === 'offer'
+                    ? t({ id: 'verifyPartySlide.q2FailTitle', message: 'Not an authorized issuer' })
+                    : t({ id: 'verifyPartySlide.q3FailTitle', message: 'Not an authorized verifier' })
+              }
+              description={
+                accreditation.granted
+                  ? type === 'offer'
+                    ? t({
+                        id: 'verifyPartySlide.q2PassDescription',
+                        message: 'Accredited to issue this credential in its ecosystem',
+                      })
+                    : t({
+                        id: 'verifyPartySlide.q3PassDescription',
+                        message: 'Authorized to request this credential in its ecosystem',
+                      })
+                  : accreditation.reason
+              }
+              onPress={onPressVerifiedIssuer}
+            />
+          ) : null}
           {isDemoTrustedEntity && (
             <InfoButton
               variant="warning"
@@ -292,6 +351,7 @@ export const VerifyPartySlide = ({
           acceptText={t(commonMessages.confirmContinue)}
           declineText={t(commonMessages.stop)}
           isLoading={isLoading}
+          isAcceptDisabled={accreditationBlocks || veranaVerdict === 'UNTRUSTED'}
         />
       </Stack>
     </YStack>
