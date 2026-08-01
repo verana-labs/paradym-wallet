@@ -19,6 +19,7 @@ import type { DisplayImage, TrustedEntity, TrustMechanism, VeranaAccreditation }
 import { resolveAccreditation, useActivities } from '@paradym/wallet-sdk'
 import { useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 const NO_ENTITY_ID = 'NO_ENTITY_ID'
 
@@ -51,6 +52,9 @@ export const VerifyPartySlide = ({
 }: VerifyPartySlideProps) => {
   const router = useRouter()
   const media = useMedia()
+  // Without this the action bar lands inside the gesture strip on tall screens, where the
+  // system swallows the touch and the user cannot accept or decline at all.
+  const { bottom } = useSafeAreaInsets()
   const { onNext, onCancel } = useWizard()
   const { withHaptics } = useHaptics()
   const [isLoading, setIsLoading] = useState(false)
@@ -169,12 +173,12 @@ export const VerifyPartySlide = ({
   })
 
   return (
-    <YStack fg={1} jc="space-between">
+    <YStack fg={1} jc="space-between" mb={Math.max(bottom, 32)}>
       {/* The wizard already scrolls the slide; a nested ScrollView deadlocks the gesture and
           strands the accept bar below the viewport when the trust card makes content tall. */}
       <YStack gap={media.short ? '$3' : '$4'}>
         <YStack gap="$3">
-          <XStack ai="center" pt="$1" jc="center">
+          <XStack ai="center" pt="$1" jc="center" display={veranaVerdict ? 'none' : 'flex'}>
             <Circle size={72} bw="$0.5" borderColor="$grey-100" bg={backgroundColor ?? '$white'}>
               {logo?.url ? (
                 <Image
@@ -343,29 +347,31 @@ export const VerifyPartySlide = ({
               })}
             />
           )}
-          <InfoButton
-            variant={lastInteractionDate ? 'interaction-success' : 'interaction-new'}
-            title={
-              lastInteractionDate
-                ? t({
-                    id: 'verifyPartySlide.hasPreviousInteractionsTitle',
-                    message: 'Previous interactions',
-                  })
-                : t({
-                    id: 'verifyPartySlide.hasNoPreviousInteractionsTitle',
-                    message: 'First time interaction',
-                  })
-            }
-            description={
-              lastInteractionDate
-                ? t({
-                    id: 'verifyPartySlide.hasPreviousInteractionsDescription',
-                    message: `Last interaction: ${formatRelativeDate(new Date(lastInteractionDate))}`,
-                  })
-                : undefined
-            }
-            onPress={lastInteractionDate ? onPressInteraction : undefined}
-          />
+          {veranaVerdict && !lastInteractionDate ? null : (
+            <InfoButton
+              variant={lastInteractionDate ? 'interaction-success' : 'interaction-new'}
+              title={
+                lastInteractionDate
+                  ? t({
+                      id: 'verifyPartySlide.hasPreviousInteractionsTitle',
+                      message: 'Previous interactions',
+                    })
+                  : t({
+                      id: 'verifyPartySlide.hasNoPreviousInteractionsTitle',
+                      message: 'First time interaction',
+                    })
+              }
+              description={
+                lastInteractionDate
+                  ? t({
+                      id: 'verifyPartySlide.hasPreviousInteractionsDescription',
+                      message: `Last interaction: ${formatRelativeDate(new Date(lastInteractionDate))}`,
+                    })
+                  : undefined
+              }
+              onPress={lastInteractionDate ? onPressInteraction : undefined}
+            />
+          )}
         </YStack>
       </YStack>
       <Stack btw={1} borderColor="$grey-100" p="$4" mx="$-4">
