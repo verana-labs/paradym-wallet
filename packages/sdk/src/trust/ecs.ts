@@ -132,7 +132,12 @@ export const deriveVerdict = (credentials: VeranaTrustCredential[] | undefined):
 export const describeVerdict = (verdict: EcsVerdict, credentials: VeranaTrustCredential[] | undefined): string => {
   if (verdict === 'TRUSTED') return 'Both identity credentials verified against the Verana public registry'
   if (verdict === 'UNTRUSTED') {
-    return 'Neither identity credential verified. This counterparty cannot present verifiable trust credentials.'
+    // A service can present structurally valid ECS credentials and still be untrusted, because
+    // whoever issued them is not trusted. Saying "neither credential verified" beside two green
+    // ticks would be a visible contradiction, so name the reason the resolver actually gave.
+    return isValid(findServiceCredential(credentials)) || isValid(findOrganizationCredential(credentials))
+      ? 'The Verana public registry does not vouch for this service.'
+      : 'Neither identity credential verified. This counterparty cannot present verifiable trust credentials.'
   }
   return isValid(findServiceCredential(credentials))
     ? 'The service credential verified. Nothing verifies who operates it.'
