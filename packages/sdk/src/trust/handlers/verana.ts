@@ -7,6 +7,7 @@ import type {
   VeranaTrustDetails,
   VeranaTrustMechanismConfiguration,
 } from '../trustMechanism'
+import type { SignedIssuerMetadata } from '../signedIssuerMetadata'
 
 export type VeranaTrustResolution = {
   did: string
@@ -95,6 +96,8 @@ export type GetTrustedEntitiesForVeranaForOpenId4VciOptions = {
   resolvedCredentialOffer: OpenId4VciResolvedCredentialOffer
   trustMechanismConfiguration: VeranaTrustMechanismConfiguration
   walletTrustedEntity?: TrustedEntity
+  /** Verified signed issuer metadata resolved outside Credo, when the holder dropped it. */
+  signedIssuerMetadata?: SignedIssuerMetadata
 }
 
 // Fast trust decision on detail=summary (a cached DB lookup). A resolution is returned whatever
@@ -142,6 +145,20 @@ const getUnverifiedRegistryEntity = (
     credentials: [],
   },
 })
+
+const readDisplay = (
+  payload: Record<string, unknown> | undefined
+): { name?: string; logo?: { uri?: string } } | undefined => {
+  if (!payload || !Array.isArray(payload.display)) return undefined
+  const first: unknown = payload.display[0]
+  if (typeof first !== 'object' || first === null) return undefined
+  const display = first as Record<string, unknown>
+  const logo = typeof display.logo === 'object' && display.logo !== null ? (display.logo as Record<string, unknown>) : undefined
+  return {
+    name: typeof display.name === 'string' ? display.name : undefined,
+    logo: logo && typeof logo.uri === 'string' ? { uri: logo.uri } : undefined,
+  }
+}
 
 const getRegistryTrustedEntity = (
   configuration: VeranaTrustMechanismConfiguration,
@@ -195,12 +212,16 @@ export const getTrustedEntitiesForVeranaForOpenId4Vci = async (
   options: GetTrustedEntitiesForVeranaForOpenId4VciOptions
 ): Promise<TrustedIssuerEntity | undefined> => {
   const signer = options.resolvedCredentialOffer.metadata.signedCredentialIssuer?.signer
-  if (signer?.method !== 'did' || !signer.didUrl) return undefined
+  const signerDidUrl =
+    signer?.method === 'did' && signer.didUrl ? signer.didUrl : options.signedIssuerMetadata?.didUrl
+  if (!signerDidUrl) return undefined
 
-  const baseDid = signer.didUrl.split('#')[0]
+  const baseDid = signerDidUrl.split('#')[0]
   const resolution = await resolveVeranaTrust(options.trustMechanismConfiguration.resolverUrl, baseDid)
 
-  const metadataDisplay = options.resolvedCredentialOffer.metadata.signedCredentialIssuer?.jwt.payload.display?.[0]
+  const metadataDisplay =
+    options.resolvedCredentialOffer.metadata.signedCredentialIssuer?.jwt.payload.display?.[0] ??
+    readDisplay(options.signedIssuerMetadata?.payload)
   const organizationName = metadataDisplay?.name ?? baseDid
   const logoUri = metadataDisplay?.logo?.uri
 

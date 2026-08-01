@@ -22,6 +22,7 @@ import {
   type TrustedOpenId4VciEntity,
 } from './handlers/fallback'
 import { getTrustedEntitiesForVeranaForOpenId4Vci, getTrustedEntitiesForVeranaForOpenId4Vp } from './handlers/verana'
+import { resolveSignedIssuerMetadata } from './signedIssuerMetadata'
 import {
   type GetTrustedEntitiesForX509CertificateForOpenId4VpOptions,
   getTrustedEntitiesForX509CertificateForOpenId4Vci,
@@ -265,9 +266,19 @@ export const getTrustedEntitiesForOpenId4Vci = async (options: {
   issuer: TrustedIssuerEntity['issuer']
   trustedEntities: Array<TrustedEntity>
 }> => {
-  const trustMechanism = detectTrustMechanismForCredentialOffer({
-    resolvedCredentialOffer: options.resolvedCredentialOffer,
-  })
+  // The bundled Credo holder drops the signed issuer-metadata variant entirely, so a DID-signed
+  // issuer would be detected as 'none'. Fetch and verify it ourselves before detection.
+  const signedIssuerMetadata = options.resolvedCredentialOffer.metadata.signedCredentialIssuer
+    ? undefined
+    : await resolveSignedIssuerMetadata(
+        options.paradym.agent.context,
+        options.resolvedCredentialOffer.metadata.credentialIssuer.credential_issuer
+      )
+  const trustMechanism = signedIssuerMetadata
+    ? 'did'
+    : detectTrustMechanismForCredentialOffer({
+        resolvedCredentialOffer: options.resolvedCredentialOffer,
+      })
   const walletTrustedEntity = options.paradym.trustMechanisms.find(
     (tm): tm is { walletTrustedEntity?: TrustedEntity } => 'walletTrustedEntity' in tm
   )?.walletTrustedEntity
@@ -301,6 +312,7 @@ export const getTrustedEntitiesForOpenId4Vci = async (options: {
         (veranaConfiguration
           ? await getTrustedEntitiesForVeranaForOpenId4Vci({
               ...options,
+              signedIssuerMetadata,
               walletTrustedEntity,
               trustMechanismConfiguration: veranaConfiguration,
             })

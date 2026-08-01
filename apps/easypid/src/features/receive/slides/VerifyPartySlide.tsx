@@ -1,3 +1,4 @@
+import { DidRow, VerdictPill } from '@easypid/features/wallet/VeranaTrustCard'
 import { Trans, useLingui } from '@lingui/react/macro'
 import { DualResponseButtons, useHaptics, useWizard } from '@package/app'
 import { commonMessages } from '@package/translations'
@@ -112,6 +113,31 @@ export const VerifyPartySlide = ({
   // [UW-POT-2]/[UW-POT-3]: a failed Q2 or Q3 must not leave accept as the default action.
   const accreditationBlocks = accreditation?.granted === false
 
+  const veranaNote = veranaVerdict
+    ? (veranaVerdict === 'TRUSTED'
+        ? t({
+            id: 'verifyPartySlide.veranaTrustedDescription',
+            message: 'Both identity checks verified against the Verana public registry',
+          })
+        : veranaVerdict === 'PARTIAL'
+          ? t({
+              id: 'verifyPartySlide.veranaPartialDescription',
+              message: 'Only one of the two identity checks verified',
+            })
+          : veranaVerdict === 'UNVERIFIED'
+            ? t({
+                id: 'verifyPartySlide.veranaUnverifiedDescription',
+                message: 'The Verana registry could not be reached. Tap to view details and retry.',
+              })
+            : t({
+                id: 'verifyPartySlide.veranaUntrustedDescription',
+                message: 'The Verana public registry does not vouch for this service',
+              })) +
+      (veranaEntity?.veranaDetails?.evaluatedAtBlock
+        ? ` · block ${veranaEntity.veranaDetails.evaluatedAtBlock.toLocaleString('en-US')}`
+        : '')
+    : undefined
+
   const handleContinue = async () => {
     setIsLoading(true)
     if (onContinue) {
@@ -220,49 +246,20 @@ export const VerifyPartySlide = ({
         </YStack>
 
         <YStack gap="$4">
-          {veranaVerdict ? (
-            <InfoButton
-              variant={
-                veranaVerdict === 'TRUSTED'
-                  ? 'positive'
-                  : veranaVerdict === 'PARTIAL'
-                    ? 'warning'
-                    : veranaVerdict === 'UNVERIFIED'
-                      ? 'info'
-                      : 'danger'
-              }
-              title={
-                veranaVerdict === 'TRUSTED'
-                  ? t({ id: 'verifyPartySlide.veranaTrustedTitle', message: 'Verified organization' })
-                  : veranaVerdict === 'PARTIAL'
-                    ? t({ id: 'verifyPartySlide.veranaPartialTitle', message: 'Partially verified' })
-                    : veranaVerdict === 'UNVERIFIED'
-                      ? t({ id: 'verifyPartySlide.veranaUnverifiedTitle', message: 'Could not verify' })
-                      : t({ id: 'verifyPartySlide.veranaUntrustedTitle', message: 'Not trusted' })
-              }
-              description={
-                veranaVerdict === 'TRUSTED'
-                  ? t({
-                      id: 'verifyPartySlide.veranaTrustedDescription',
-                      message: 'Both identity checks verified against the Verana public registry',
-                    })
-                  : veranaVerdict === 'PARTIAL'
-                    ? t({
-                        id: 'verifyPartySlide.veranaPartialDescription',
-                        message: 'Only one of the two identity checks verified',
-                      })
-                    : veranaVerdict === 'UNVERIFIED'
-                      ? t({
-                          id: 'verifyPartySlide.veranaUnverifiedDescription',
-                          message: 'The Verana registry could not be reached. Tap to view details and retry.',
-                        })
-                      : t({
-                          id: 'verifyPartySlide.veranaUntrustedDescription',
-                          message: 'The Verana public registry does not vouch for this service',
-                        })
-              }
+          {veranaEntity?.veranaDetails && veranaVerdict ? (
+            <YStack
+              bg="$white"
+              br="$8"
+              bw={1}
+              borderColor="$grey-100"
+              p="$4"
+              gap="$3"
               onPress={onPressVerifiedIssuer}
-            />
+              pressStyle={{ bg: '$grey-50' }}
+            >
+              <DidRow did={veranaEntity.veranaDetails.did} verdict={veranaVerdict} />
+              <VerdictPill verdict={veranaVerdict} note={veranaNote} />
+            </YStack>
           ) : trustedEntitiesWithoutSelf && (trustedEntitiesWithoutSelf.length > 0 || entityIsTrustAnchor) ? (
             <InfoButton
               variant={entityIsTrustAnchor ? 'positive' : 'info'}
