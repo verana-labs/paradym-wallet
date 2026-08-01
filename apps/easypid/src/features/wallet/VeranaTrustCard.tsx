@@ -137,12 +137,9 @@ export function ExplorerLink({ did }: { did: string }) {
   )
 }
 
-const LOGO_TONES = [
-  ['#0F766E', '#14B8A6'],
-  ['#1E3A8A', '#3B82F6'],
-  ['#7C2D12', '#EA580C'],
-  ['#4C1D95', '#7C3AED'],
-] as const
+// Flat tints, not gradients: the card spec gives the tile a solid `logo.tint` with #3f3f46 as the
+// fallback, and a gradient here reads as a different brand from the same registry entry.
+const LOGO_TINTS = ['#0f9488', '#1d4ed8', '#9a3412', '#3f3f46'] as const
 
 const initialsOf = (name?: string) =>
   (name ?? '?')
@@ -155,17 +152,11 @@ const initialsOf = (name?: string) =>
 /** Stands in for `logoUri`, which no testnet service publishes yet. */
 export function LogoBadge({ name, verified }: { name?: string; verified?: boolean }) {
   const initials = initialsOf(name)
-  const [from, to] = LOGO_TONES[initials.charCodeAt(0) % LOGO_TONES.length]
+  const tint = LOGO_TINTS[initials.charCodeAt(0) % LOGO_TINTS.length]
   return (
     <YStack width={40} height={40}>
       <Svg width={40} height={40} viewBox="0 0 40 40">
-        <Defs>
-          <LinearGradient id={`logo-${initials}`} x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
-            <Stop offset="0%" stopColor={from} />
-            <Stop offset="100%" stopColor={to} />
-          </LinearGradient>
-        </Defs>
-        <Rect width={40} height={40} rx={10} fill={`url(#logo-${initials})`} />
+        <Rect width={40} height={40} rx={11} fill={tint} />
         <SvgText
           x={20}
           y={26}

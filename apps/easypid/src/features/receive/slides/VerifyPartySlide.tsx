@@ -1,4 +1,4 @@
-import { DidRow, VerdictPill } from '@easypid/features/wallet/VeranaTrustCard'
+import { VeranaTrustChain } from '@easypid/features/wallet/VeranaTrustChain'
 import { Trans, useLingui } from '@lingui/react/macro'
 import { DualResponseButtons, useHaptics, useWizard } from '@package/app'
 import { commonMessages } from '@package/translations'
@@ -15,8 +15,14 @@ import {
   YStack,
 } from '@package/ui'
 import { formatRelativeDate } from '@package/utils'
-import type { DisplayImage, TrustedEntity, TrustMechanism, VeranaAccreditation } from '@paradym/wallet-sdk'
-import { resolveAccreditation, useActivities } from '@paradym/wallet-sdk'
+import type {
+  DisplayImage,
+  TrustedEntity,
+  TrustMechanism,
+  VeranaAccreditation,
+  VeranaTrustCredential,
+} from '@paradym/wallet-sdk'
+import { fetchVeranaTrustDetails, resolveAccreditation, useActivities } from '@paradym/wallet-sdk'
 import { useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -116,30 +122,27 @@ export const VerifyPartySlide = ({
   // [UW-POT-2]/[UW-POT-3]: a failed Q2 or Q3 must not leave accept as the default action.
   const accreditationBlocks = accreditation?.granted === false
 
-  const veranaNote = veranaVerdict
-    ? (veranaVerdict === 'TRUSTED'
-        ? t({
-            id: 'verifyPartySlide.veranaTrustedDescription',
-            message: 'Both identity checks verified against the Verana public registry',
-          })
-        : veranaVerdict === 'PARTIAL'
-          ? t({
-              id: 'verifyPartySlide.veranaPartialDescription',
-              message: 'Only one of the two identity checks verified',
-            })
-          : veranaVerdict === 'UNVERIFIED'
-            ? t({
-                id: 'verifyPartySlide.veranaUnverifiedDescription',
-                message: 'The Verana registry could not be reached. Tap to view details and retry.',
-              })
-            : t({
-                id: 'verifyPartySlide.veranaUntrustedDescription',
-                message: 'The Verana public registry does not vouch for this service',
-              })) +
-      (veranaEntity?.veranaDetails?.evaluatedAtBlock
-        ? ` · block ${veranaEntity.veranaDetails.evaluatedAtBlock.toLocaleString('en-US')}`
-        : '')
-    : undefined
+  // The card renders the same identity chain the detail screen does, so the consent screen shows
+  // who this is before asking whether to trust them - not just a verdict word.
+  const veranaDetails = veranaEntity?.veranaDetails
+  const [veranaCredentials, setVeranaCredentials] = useState<VeranaTrustCredential[]>([])
+  const [isLoadingChain, setIsLoadingChain] = useState(false)
+
+  useEffect(() => {
+    if (!veranaDetails?.resolverUrl || !veranaDetails.did) return
+    let cancelled = false
+    setIsLoadingChain(true)
+    void fetchVeranaTrustDetails(veranaDetails.resolverUrl, veranaDetails.did)
+      .then((full) => {
+        if (!cancelled) setVeranaCredentials(full?.credentials ?? [])
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingChain(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [veranaDetails?.resolverUrl, veranaDetails?.did])
 
   const handleContinue = async () => {
     setIsLoading(true)
@@ -173,12 +176,15 @@ export const VerifyPartySlide = ({
   })
 
   return (
-    <YStack fg={1} jc="space-between" mb={Math.max(bottom, 32)}>
+    // flexShrink 0 is what makes the wizard's ScrollView scrollable: without it the slide is
+    // squeezed to exactly one viewport, the overflow is clipped, and the action bar ends up
+    // under the system gesture strip where touches never reach the app.
+    <YStack fg={1} fs={0} jc="space-between" mb={Math.max(bottom, 32)}>
       {/* The wizard already scrolls the slide; a nested ScrollView deadlocks the gesture and
           strands the accept bar below the viewport when the trust card makes content tall. */}
       <YStack gap={media.short ? '$3' : '$4'}>
         <YStack gap="$3">
-          <XStack ai="center" pt="$1" jc="center" display={veranaVerdict ? 'none' : 'flex'}>
+          <XStack ai="center" pt="$1" jc="center" display={veranaDetails ? 'none' : 'flex'}>
             <Circle size={72} bw="$0.5" borderColor="$grey-100" bg={backgroundColor ?? '$white'}>
               {logo?.url ? (
                 <Image
@@ -251,19 +257,38 @@ export const VerifyPartySlide = ({
         </YStack>
 
         <YStack gap="$4">
-          {veranaEntity?.veranaDetails && veranaVerdict ? (
+          {veranaDetails && veranaVerdict ? (
             <YStack
               bg="$white"
               br="$8"
               bw={1}
               borderColor="$grey-100"
-              p="$4"
+              px="$3"
+              py="$3.5"
+              mx="$-2"
               gap="$3"
               onPress={onPressVerifiedIssuer}
               pressStyle={{ bg: '$grey-50' }}
             >
-              <DidRow did={veranaEntity.veranaDetails.did} verdict={veranaVerdict} />
-              <VerdictPill verdict={veranaVerdict} note={veranaNote} />
+              <VeranaTrustChain
+                did={veranaDetails.did}
+                verdict={veranaVerdict}
+                credentials={veranaCredentials}
+                isLoading={isLoadingChain}
+                ask={
+                  shouldCheckAccreditation && (type === 'offer' || type === 'request')
+                    ? {
+                        kind: type,
+                        granted: accreditation?.granted,
+                        party: name ?? entityId,
+                        credential: credentialType?.title ?? credentialType?.vct ?? 'this credential',
+                        reason: isCheckingAccreditation
+                          ? 'Checking the Verana public registry…'
+                          : accreditation?.reason,
+                      }
+                    : undefined
+                }
+              />
               {isDemoTrustedEntity && (
                 <Paragraph variant="sub" color="$warning-600">
                   {t({
@@ -306,7 +331,7 @@ export const VerifyPartySlide = ({
               onPress={onPressVerifiedIssuer}
             />
           )}
-          {accreditation ? (
+          {accreditation && !veranaDetails ? (
             <InfoButton
               variant={accreditation.granted ? 'positive' : 'danger'}
               title={

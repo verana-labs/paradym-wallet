@@ -154,7 +154,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        238
+        248
       ]
     ],
     "translation": "{name} möchte sich mit dir verbinden."
@@ -170,7 +170,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        216
+        226
       ]
     ],
     "translation": "{name} möchte mit dir eine digitale Signatur für ein Dokument erstellen."
@@ -186,7 +186,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        206
+        216
       ]
     ],
     "translation": "{name} möchte dir eine Karte anbieten."
@@ -202,7 +202,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        228
+        238
       ]
     ],
     "translation": "{name} möchte Informationen von dir anfordern."
@@ -366,7 +366,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        320
+        349
       ]
     ],
     "translation": ""
@@ -654,7 +654,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        240
+        250
       ]
     ],
     "translation": "Eine unbekannte Organisation möchte sich mit dir verbinden."
@@ -666,7 +666,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        220
+        230
       ]
     ],
     "translation": "Eine unbekannte Organisation möchte mit dir eine digitale Signatur für ein Dokument erstellen."
@@ -678,7 +678,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        208
+        218
       ]
     ],
     "translation": "Eine unbekannte Organisation möchte dir eine Karte anbieten."
@@ -690,7 +690,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        230
+        240
       ]
     ],
     "translation": "Eine unbekannte Organisation möchte Informationen von dir anfordern."
@@ -720,7 +720,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        281
+        310
       ]
     ],
     "translation": "Vertraut von {0} Organisationen"
@@ -732,7 +732,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        286
+        315
       ]
     ],
     "translation": "Vertraut von einer Organisation"
@@ -890,7 +890,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        311
+        340
       ]
     ],
     "translation": ""
@@ -902,7 +902,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        324
+        353
       ]
     ],
     "translation": ""
@@ -914,7 +914,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        312
+        341
       ]
     ],
     "translation": ""
@@ -1105,7 +1105,8 @@
         117
       ]
     ],
-    "translation": ""
+    "translation": "",
+    "obsolete": true
   },
   "common.deleteDeferredCredentialDescription": {
     "message": "By deleting {name}, you will no longer be able to retrieve your card from the issuer.",
@@ -1802,16 +1803,16 @@
     "translation": "Gelöschter Nachweis"
   },
   "verifyPartySlide.veranaDemoNetwork": {
-    "translation": "",
     "message": "Demo network - do not share real data",
     "placeholders": {},
     "comments": [],
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        265
+        294
       ]
-    ]
+    ],
+    "translation": ""
   },
   "trust.demoOrg": {
     "message": "Demo organization",
@@ -1834,7 +1835,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        336
+        365
       ]
     ],
     "translation": "Demo-Organisation"
@@ -1874,7 +1875,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        340
+        369
       ]
     ],
     "translation": "Teile keine echten Daten"
@@ -1890,7 +1891,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        198
+        208
       ]
     ],
     "translation": "Vertraust du {name}?"
@@ -2318,7 +2319,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        354
+        384
       ]
     ],
     "translation": "Erste Interaktion"
@@ -3001,7 +3002,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        361
+        391
       ]
     ],
     "translation": "Letzte Interaktion: {0}"
@@ -3384,7 +3385,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        314
+        343
       ]
     ],
     "translation": ""
@@ -3396,7 +3397,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        315
+        344
       ]
     ],
     "translation": ""
@@ -3470,7 +3471,8 @@
         122
       ]
     ],
-    "translation": ""
+    "translation": "",
+    "obsolete": true
   },
   "common.openSettingsButton": {
     "message": "Open settings",
@@ -3505,7 +3507,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        298
+        327
       ]
     ],
     "translation": "Organisation ist nicht verifiziert"
@@ -3517,7 +3519,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        200
+        210
       ]
     ],
     "translation": "Organisation nicht verifiziert"
@@ -4054,7 +4056,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        350
+        380
       ]
     ],
     "translation": "Vorherige Interaktionen"
@@ -4252,7 +4254,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        275
+        304
       ]
     ],
     "translation": "Vertrauenswürdige Organisation"
@@ -5593,7 +5595,8 @@
         131
       ]
     ],
-    "translation": ""
+    "translation": "",
+    "obsolete": true
   },
   "verifyPartySlide.veranaUnverifiedDescription": {
     "message": "The Verana registry could not be reached. Tap to view details and retry.",
@@ -5605,7 +5608,8 @@
         127
       ]
     ],
-    "translation": ""
+    "translation": "",
+    "obsolete": true
   },
   "trust.noApprovals": {
     "message": "There are no organizations that have approved {name}.",

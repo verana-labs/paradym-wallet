@@ -127,12 +127,16 @@ export const deriveVerdict = (credentials: VeranaTrustCredential[] | undefined):
   return 'UNTRUSTED'
 }
 
+// Wording is fixed by the versioned card at playground/public/trust-card/index.html. Same sentence
+// in every wallet, or the same evaluation reads differently depending on who rendered it.
 export const describeVerdict = (verdict: EcsVerdict, credentials: VeranaTrustCredential[] | undefined): string => {
-  if (verdict === 'TRUSTED') return 'Both identity checks verified against the Verana public registry'
-  if (verdict === 'UNTRUSTED') return 'Neither identity check verified'
+  if (verdict === 'TRUSTED') return 'Both identity credentials verified against the Verana public registry'
+  if (verdict === 'UNTRUSTED') {
+    return 'Neither identity credential verified. This counterparty cannot present verifiable trust credentials.'
+  }
   return isValid(findServiceCredential(credentials))
-    ? 'Service verified, operator unverified'
-    : 'Operator verified, service unverified'
+    ? 'The service credential verified. Nothing verifies who operates it.'
+    : 'The operator credential verified. Nothing verifies the service itself.'
 }
 
 const MARKDOWN_LINK = /\[([^\]]*)\]\(([^)]*)\)/g
