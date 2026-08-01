@@ -79,6 +79,10 @@ export const VerifyPartySlide = ({
   // nothing about being allowed to issue or ask for *this* credential. `undefined` stays
   // undefined - an unreachable registry is not a refusal ([UW-RES-6]).
   const [accreditation, setAccreditation] = useState<VeranaAccreditation>()
+  // [PW-RES-2]/[PW-RES-3]: the check must settle before accept is actionable, so the accept
+  // button stays disabled while it is in flight - otherwise a normal-speed tap lands inside
+  // the VPR round trip and takes a credential from an issuer the wallet never vetted.
+  const [isCheckingAccreditation, setIsCheckingAccreditation] = useState(false)
   const veranaApiUrl = veranaEntity?.veranaDetails?.apiUrl
   const accreditationRole = type === 'offer' ? 'ISSUER' : 'VERIFIER'
   const shouldCheckAccreditation =
@@ -87,14 +91,19 @@ export const VerifyPartySlide = ({
   useEffect(() => {
     if (!shouldCheckAccreditation || !veranaApiUrl) return
     let cancelled = false
+    setIsCheckingAccreditation(true)
     void resolveAccreditation(veranaApiUrl, {
       did: entityId,
       role: accreditationRole,
       vct: credentialType?.vct,
       title: credentialType?.title,
-    }).then((result) => {
-      if (!cancelled) setAccreditation(result)
     })
+      .then((result) => {
+        if (!cancelled) setAccreditation(result)
+      })
+      .finally(() => {
+        if (!cancelled) setIsCheckingAccreditation(false)
+      })
     return () => {
       cancelled = true
     }
@@ -214,14 +223,22 @@ export const VerifyPartySlide = ({
           {veranaVerdict ? (
             <InfoButton
               variant={
-                veranaVerdict === 'TRUSTED' ? 'positive' : veranaVerdict === 'PARTIAL' ? 'warning' : 'danger'
+                veranaVerdict === 'TRUSTED'
+                  ? 'positive'
+                  : veranaVerdict === 'PARTIAL'
+                    ? 'warning'
+                    : veranaVerdict === 'UNVERIFIED'
+                      ? 'info'
+                      : 'danger'
               }
               title={
                 veranaVerdict === 'TRUSTED'
                   ? t({ id: 'verifyPartySlide.veranaTrustedTitle', message: 'Verified organization' })
                   : veranaVerdict === 'PARTIAL'
                     ? t({ id: 'verifyPartySlide.veranaPartialTitle', message: 'Partially verified' })
-                    : t({ id: 'verifyPartySlide.veranaUntrustedTitle', message: 'Not trusted' })
+                    : veranaVerdict === 'UNVERIFIED'
+                      ? t({ id: 'verifyPartySlide.veranaUnverifiedTitle', message: 'Could not verify' })
+                      : t({ id: 'verifyPartySlide.veranaUntrustedTitle', message: 'Not trusted' })
               }
               description={
                 veranaVerdict === 'TRUSTED'
@@ -234,10 +251,15 @@ export const VerifyPartySlide = ({
                         id: 'verifyPartySlide.veranaPartialDescription',
                         message: 'Only one of the two identity checks verified',
                       })
-                    : t({
-                        id: 'verifyPartySlide.veranaUntrustedDescription',
-                        message: 'The Verana public registry does not vouch for this service',
-                      })
+                    : veranaVerdict === 'UNVERIFIED'
+                      ? t({
+                          id: 'verifyPartySlide.veranaUnverifiedDescription',
+                          message: 'The Verana registry could not be reached. Tap to view details and retry.',
+                        })
+                      : t({
+                          id: 'verifyPartySlide.veranaUntrustedDescription',
+                          message: 'The Verana public registry does not vouch for this service',
+                        })
               }
               onPress={onPressVerifiedIssuer}
             />
@@ -351,7 +373,11 @@ export const VerifyPartySlide = ({
           acceptText={t(commonMessages.confirmContinue)}
           declineText={t(commonMessages.stop)}
           isLoading={isLoading}
-          isAcceptDisabled={accreditationBlocks || veranaVerdict === 'UNTRUSTED'}
+          isAcceptDisabled={
+            accreditationBlocks ||
+            veranaVerdict === 'UNTRUSTED' ||
+            (shouldCheckAccreditation && isCheckingAccreditation)
+          }
         />
       </Stack>
     </YStack>

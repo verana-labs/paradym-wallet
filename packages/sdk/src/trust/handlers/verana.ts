@@ -122,6 +122,27 @@ export const fetchVeranaTrustDetails = async (
   }
 }
 
+// [PW-RES-6]: a peer that identifies by DID while the resolver is unreachable is UNVERIFIED, a
+// first-class state. Falling through to the generic DID handler here would render the outage as
+// "unknown organization" - indistinguishable from a peer the registry refuses to vouch for.
+const getUnverifiedRegistryEntity = (
+  configuration: VeranaTrustMechanismConfiguration,
+  did: string
+): TrustedEntity => ({
+  entityId: `verana:${did}`,
+  organizationName: configuration.registryDisplay?.organizationName ?? 'Verana Trust Registry',
+  logoUri: configuration.registryDisplay?.logoUri,
+  uri: configuration.registryDisplay?.uri ?? 'https://verana.io',
+  veranaDetails: {
+    did,
+    trustStatus: 'UNVERIFIED',
+    production: true,
+    resolverUrl: configuration.resolverUrl,
+    apiUrl: configuration.apiUrl,
+    credentials: [],
+  },
+})
+
 const getRegistryTrustedEntity = (
   configuration: VeranaTrustMechanismConfiguration,
   resolution: VeranaTrustResolution
@@ -151,10 +172,13 @@ export const getTrustedEntitiesForVeranaForOpenId4Vp = async (
 
   const did = effectiveClientId.replace('decentralized_identifier:', '').split('#')[0]
   const resolution = await resolveVeranaTrust(options.trustMechanismConfiguration.resolverUrl, did)
-  if (!resolution) return undefined
 
   const clientMetadata = options.resolvedAuthorizationRequest.authorizationRequestPayload.client_metadata
-  const trustedEntities: TrustedEntity[] = [getRegistryTrustedEntity(options.trustMechanismConfiguration, resolution)]
+  const trustedEntities: TrustedEntity[] = [
+    resolution
+      ? getRegistryTrustedEntity(options.trustMechanismConfiguration, resolution)
+      : getUnverifiedRegistryEntity(options.trustMechanismConfiguration, did),
+  ]
   if (options.walletTrustedEntity) trustedEntities.push(options.walletTrustedEntity)
 
   return {
@@ -175,13 +199,16 @@ export const getTrustedEntitiesForVeranaForOpenId4Vci = async (
 
   const baseDid = signer.didUrl.split('#')[0]
   const resolution = await resolveVeranaTrust(options.trustMechanismConfiguration.resolverUrl, baseDid)
-  if (!resolution) return undefined
 
   const metadataDisplay = options.resolvedCredentialOffer.metadata.signedCredentialIssuer?.jwt.payload.display?.[0]
   const organizationName = metadataDisplay?.name ?? baseDid
   const logoUri = metadataDisplay?.logo?.uri
 
-  const trustedEntities: TrustedEntity[] = [getRegistryTrustedEntity(options.trustMechanismConfiguration, resolution)]
+  const trustedEntities: TrustedEntity[] = [
+    resolution
+      ? getRegistryTrustedEntity(options.trustMechanismConfiguration, resolution)
+      : getUnverifiedRegistryEntity(options.trustMechanismConfiguration, baseDid),
+  ]
   if (options.walletTrustedEntity) trustedEntities.push(options.walletTrustedEntity)
 
   return {

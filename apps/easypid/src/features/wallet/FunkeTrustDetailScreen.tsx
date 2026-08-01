@@ -186,7 +186,11 @@ export function FunkeTrustDetailScreen({
                       <XStack ai="center" gap="$2">
                         <IconContainer
                           icon={
-                            entity.demo ? (
+                            entity.veranaDetails?.trustStatus === 'UNTRUSTED' ? (
+                              <HeroIcons.ExclamationCircleFilled size={30} color="$danger-500" />
+                            ) : entity.veranaDetails && entity.veranaDetails.trustStatus !== 'TRUSTED' ? (
+                              <HeroIcons.ExclamationTriangleFilled size={30} color="$warning-500" />
+                            ) : entity.demo ? (
                               <HeroIcons.ExclamationTriangleFilled size={30} color="$warning-500" />
                             ) : (
                               <HeroIcons.CheckCircleFilled size={30} color="$positive-500" />

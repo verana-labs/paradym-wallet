@@ -5,7 +5,7 @@ import { Redirect, useLocalSearchParams } from 'expo-router'
 // Gating this on TRUSTED redirected the user away from the one screen that explains a
 // failure. [UW-POT-6]: a failed verdict is content, not an edge case.
 const isTrustStatus = (value: unknown): value is VeranaTrustDetails['trustStatus'] =>
-  value === 'TRUSTED' || value === 'PARTIAL' || value === 'UNTRUSTED'
+  value === 'TRUSTED' || value === 'PARTIAL' || value === 'UNTRUSTED' || value === 'UNVERIFIED'
 
 const parseDetails = (value?: string): VeranaTrustDetails | undefined => {
   if (!value) return undefined

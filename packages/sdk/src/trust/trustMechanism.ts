@@ -39,7 +39,8 @@ export type VeranaTrustCredential = {
 
 export type VeranaTrustDetails = {
   did: string
-  trustStatus: 'TRUSTED' | 'PARTIAL' | 'UNTRUSTED'
+  /** UNVERIFIED is wallet-local: the peer identifies by DID but the resolver could not be reached. */
+  trustStatus: 'TRUSTED' | 'PARTIAL' | 'UNTRUSTED' | 'UNVERIFIED'
   production: boolean
   evaluatedAtBlock?: number
   expiresAt?: string

@@ -88,7 +88,8 @@ const parsePermission = (value: unknown): VeranaPermission | undefined => {
  */
 export const isPermissionActive = (permission: VeranaPermission, at: Date = new Date()): boolean => {
   if (permission.revoked || permission.slashed) return false
-  if (permission.validationState === 'TERMINATED') return false
+  // PENDING is an application under review, not a grant - live testnet holds such records.
+  if (permission.validationState === 'TERMINATED' || permission.validationState === 'PENDING') return false
 
   const now = at.getTime()
   if (permission.effectiveFrom) {
@@ -118,9 +119,11 @@ export const findAccreditation = (
 
   // Distinguishing "never had one" from "had one, it lapsed" is the difference between a
   // stranger and a former partner, and the consent screen says so.
-  const reason = forRole.length
-    ? `A ${options.role.toLowerCase()} permission exists for this schema but is no longer in force`
-    : `No ${options.role.toLowerCase()} permission for this schema in its ecosystem`
+  const reason = forRole.some((permission) => permission.validationState === 'PENDING')
+    ? `A ${options.role.toLowerCase()} permission for this schema is still pending validation`
+    : forRole.length
+      ? `A ${options.role.toLowerCase()} permission exists for this schema but is no longer in force`
+      : `No ${options.role.toLowerCase()} permission for this schema in its ecosystem`
 
   return { role: options.role, granted: false, schemaId: options.schemaId, reason }
 }
@@ -158,6 +161,7 @@ export const fetchSchemas = async (apiUrl: string): Promise<VeranaSchema[] | und
 
     const body: unknown = await response.json()
     if (!isRecord(body) || !Array.isArray(body.schemas)) return undefined
+    if (body.schemas.length >= RESPONSE_MAX_SIZE) return undefined
 
     return body.schemas.flatMap((entry): VeranaSchema[] => {
       if (!isRecord(entry)) return []
@@ -228,6 +232,7 @@ export const fetchPermissions = async (
 
     const body: unknown = await response.json()
     if (!isRecord(body) || !Array.isArray(body.permissions)) return undefined
+    if (body.permissions.length >= (options?.limit ?? RESPONSE_MAX_SIZE)) return undefined
 
     return body.permissions
       .map(parsePermission)

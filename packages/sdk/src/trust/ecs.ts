@@ -59,9 +59,11 @@ const asset = (
   return digest ? { uri, digest } : { uri }
 }
 
+// [PW-POT-4]: claims render as facts only from credentials the resolver verified. A revoked or
+// tampered ECS credential still carries claims; they belong in the failure detail, not blocks 2-3.
 export const readEcsService = (credential: VeranaTrustCredential | undefined): EcsService | undefined => {
   const claims = credential?.claims
-  if (!claims) return undefined
+  if (!claims || !isValid(credential)) return undefined
 
   const format = str(claims, 'descriptionFormat')
   return {
@@ -85,7 +87,7 @@ export const readEcsService = (credential: VeranaTrustCredential | undefined): E
 
 export const readEcsOrganization = (credential: VeranaTrustCredential | undefined): EcsOrganization | undefined => {
   const claims = credential?.claims
-  if (!claims) return undefined
+  if (!claims || !isValid(credential)) return undefined
 
   return {
     id: str(claims, 'id'),

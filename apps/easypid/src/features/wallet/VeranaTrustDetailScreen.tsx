@@ -87,6 +87,9 @@ export function VeranaTrustDetailScreen({ details, name }: VeranaTrustDetailScre
   const [credentials, setCredentials] = useState<VeranaTrustCredential[]>(details.credentials)
   const [isLoading, setIsLoading] = useState(details.credentials.length === 0)
   const [showDetail, setShowDetail] = useState(false)
+  // The lazy full fetch doubles as the [PW-RES-6] retry: when the consent screen could not reach
+  // the resolver (UNVERIFIED), a successful fetch here replaces the verdict with the real one.
+  const [resolvedStatus, setResolvedStatus] = useState<VeranaTrustDetails['trustStatus']>()
 
   useEffect(() => {
     if (details.credentials.length > 0) return
@@ -94,7 +97,10 @@ export function VeranaTrustDetailScreen({ details, name }: VeranaTrustDetailScre
     ;(async () => {
       try {
         const full = await fetchVeranaTrustDetails(details.resolverUrl, details.did)
-        if (!cancelled) setCredentials(full?.credentials ?? [])
+        if (!cancelled) {
+          setCredentials(full?.credentials ?? [])
+          if (full) setResolvedStatus(full.trustStatus)
+        }
       } catch {
         // leave credentials empty on failure; the verdict still renders
       } finally {
@@ -116,8 +122,9 @@ export function VeranaTrustDetailScreen({ details, name }: VeranaTrustDetailScre
   // VALID and still resolves UNTRUSTED, because a credential being valid is not the same as its
   // issuer being trusted. Deriving locally would upgrade that to TRUSTED, which is [UW-POT-5]'s
   // "must not invent trust signals" in its most damaging form.
-  const verdict = details.trustStatus
-  const verdictNote = credentials.length > 0 ? describeVerdict(verdict, credentials) : undefined
+  const verdict = resolvedStatus ?? details.trustStatus
+  const verdictNote =
+    verdict !== 'UNVERIFIED' && credentials.length > 0 ? describeVerdict(verdict, credentials) : undefined
   const description = stripLinks(service?.description)
   const hasConditions = Boolean(service?.terms || service?.privacy || service?.minimumAgeRequired)
 

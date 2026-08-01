@@ -1,14 +1,17 @@
 import { Circle, Heading, HeroIcons, Paragraph, XStack, YStack } from '@package/ui'
-import type { EcsAssetRef, EcsVerdict } from '@paradym/wallet-sdk'
+import type { EcsAssetRef, VeranaTrustDetails } from '@paradym/wallet-sdk'
 import { Linking } from 'react-native'
 import Svg, { Defs, LinearGradient, Path, Rect, Stop, Text as SvgText } from 'react-native-svg'
 
 export const VERANA_EXPLORER = 'https://app.testnet.verana.network'
 
+type TrustBandVerdict = VeranaTrustDetails['trustStatus']
+
 const VERDICT_TONE = {
   TRUSTED: { color: '$positive-500', label: 'TRUSTED' },
   PARTIAL: { color: '$warning-600', label: 'PARTIAL' },
   UNTRUSTED: { color: '$danger-500', label: 'UNTRUSTED' },
+  UNVERIFIED: { color: '$grey-500', label: 'COULD NOT VERIFY' },
 } as const
 
 export function VeranaMark({ size = 16 }: { size?: number }) {
@@ -55,7 +58,7 @@ export function StepTick({ ok }: { ok: boolean }) {
   )
 }
 
-export function VerdictPill({ verdict, note }: { verdict: EcsVerdict; note?: string }) {
+export function VerdictPill({ verdict, note }: { verdict: TrustBandVerdict; note?: string }) {
   const tone = VERDICT_TONE[verdict]
   return (
     <YStack gap="$2">
@@ -76,7 +79,7 @@ export function VerdictPill({ verdict, note }: { verdict: EcsVerdict; note?: str
         </Paragraph>
       </XStack>
       {note ? (
-        <Paragraph variant="sub" color={verdict === 'TRUSTED' ? '$grey-600' : '$danger-600'}>
+        <Paragraph variant="sub" color={verdict === 'TRUSTED' || verdict === 'UNVERIFIED' ? '$grey-600' : '$danger-600'}>
           {note}
         </Paragraph>
       ) : null}
@@ -183,7 +186,7 @@ export function LogoBadge({ name, verified }: { name?: string; verified?: boolea
   )
 }
 
-export function DidRow({ did, verdict }: { did: string; verdict: EcsVerdict }) {
+export function DidRow({ did, verdict }: { did: string; verdict: TrustBandVerdict }) {
   const tone = VERDICT_TONE[verdict]
   return (
     <XStack ai="center" gap="$2">
