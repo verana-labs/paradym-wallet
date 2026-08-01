@@ -50,10 +50,25 @@ export function CountryFlag({ code, size = 16 }: { code?: string; size?: number 
   return <Paragraph fontSize={size + 3}>{emoji}</Paragraph>
 }
 
-export function StepTick({ ok }: { ok: boolean }) {
+export type StepTone = 'ok' | 'bad' | 'none'
+
+export function StepTick({ tone }: { tone: StepTone }) {
   return (
-    <Circle size={28} ai="center" jc="center" bg={ok ? '$positive-500' : '$danger-500'}>
-      {ok ? <HeroIcons.Check size={15} color="$white" /> : <HeroIcons.X size={15} color="$white" />}
+    <Circle
+      size={28}
+      ai="center"
+      jc="center"
+      bg={tone === 'ok' ? '$positive-500' : tone === 'bad' ? '$danger-500' : '$grey-400'}
+    >
+      {tone === 'ok' ? (
+        <HeroIcons.Check size={15} color="$white" />
+      ) : tone === 'bad' ? (
+        <HeroIcons.X size={15} color="$white" />
+      ) : (
+        <Paragraph color="$white" fontWeight="800" fontSize={15}>
+          ?
+        </Paragraph>
+      )}
     </Circle>
   )
 }

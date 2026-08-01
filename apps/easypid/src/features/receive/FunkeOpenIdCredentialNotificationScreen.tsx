@@ -351,7 +351,16 @@ export function FunkeCredentialNotificationScreen() {
               }
               trustMechanism={resolvedCredentialOffer.trustMechanism}
               trustedEntities={resolvedCredentialOffer.trustedEntities}
-              credentialType={{ title: resolvedCredentialOffer.credentialDisplay?.name }}
+              credentialType={{
+                title: resolvedCredentialOffer.credentialDisplay?.name,
+                // The vct links the offer to its VPR schema, so Q2 checks the accreditation against
+                // the schema the issuer committed to rather than against a matching title.
+                vct: Object.values(
+                  resolvedCredentialOffer.resolvedCredentialOffer.offeredCredentialConfigurations
+                )
+                  .map((configuration) => (configuration as { vct?: unknown }).vct)
+                  .find((vct): vct is string => typeof vct === 'string'),
+              }}
             />
           ),
         },

@@ -32,6 +32,7 @@ import {
   RegistryChip,
   SectionLabel,
   StepTick,
+  type StepTone,
   VerdictPill,
 } from './VeranaTrustCard'
 
@@ -41,21 +42,22 @@ export type VeranaTrustDetailScreenProps = {
 }
 
 function ChainStep({
-  ok,
+  tone,
   label,
   isLast,
   children,
 }: {
-  ok: boolean
+  tone: StepTone
   label: string
   isLast?: boolean
   children: React.ReactNode
 }) {
+  const rail = tone === 'ok' ? '$positive-300' : tone === 'bad' ? '$danger-300' : '$grey-300'
   return (
     <XStack gap="$3">
       <YStack ai="center" width={28}>
-        <StepTick ok={ok} />
-        {!isLast ? <YStack flex={1} width={2} bg={ok ? '$positive-300' : '$grey-300'} minHeight={16} /> : null}
+        <StepTick tone={tone} />
+        {!isLast ? <YStack flex={1} width={2} bg={rail} minHeight={16} /> : null}
       </YStack>
       <YStack flex={1} pb={isLast ? '$0' : '$4'} gap="$1">
         <SectionLabel>{label}</SectionLabel>
@@ -114,8 +116,17 @@ export function VeranaTrustDetailScreen({ details, name }: VeranaTrustDetailScre
 
   const serviceCredential = findServiceCredential(credentials)
   const organizationCredential = findOrganizationCredential(credentials)
-  const service = readEcsService(serviceCredential)
-  const organization = readEcsOrganization(organizationCredential)
+
+  // Same rule as the consent card: the tick follows the resolution, never bare structural
+  // validity, so a self-issued credential can never show a green check.
+  const rowTone = (credential: VeranaTrustCredential | undefined): StepTone => {
+    if (verdict === 'UNVERIFIED') return 'none'
+    if (verdict === 'UNTRUSTED') return 'bad'
+    return credential?.result === 'VALID' ? 'ok' : 'bad'
+  }
+
+  const service = rowTone(serviceCredential) === 'ok' ? readEcsService(serviceCredential) : undefined
+  const organization = rowTone(organizationCredential) === 'ok' ? readEcsOrganization(organizationCredential) : undefined
 
   // The resolver's verdict is authoritative and is never recomputed from the raw credentials.
   // The demo cast proves why: `demo-untrusted` presents ECS-Service and ECS-Organization both
@@ -143,7 +154,7 @@ export function VeranaTrustDetailScreen({ details, name }: VeranaTrustDetailScre
           ) : null}
 
           <YStack>
-            <ChainStep ok={serviceCredential?.result === 'VALID'} label="Service">
+            <ChainStep tone={rowTone(serviceCredential)} label="Service">
               {service ? (
                 <XStack gap="$3" ai="flex-start">
                   <LogoBadge name={service.name} verified={Boolean(service.logo?.digest)} />
@@ -165,7 +176,7 @@ export function VeranaTrustDetailScreen({ details, name }: VeranaTrustDetailScre
               )}
             </ChainStep>
 
-            <ChainStep ok={organizationCredential?.result === 'VALID'} label="Operated by" isLast>
+            <ChainStep tone={rowTone(organizationCredential)} label="Operated by" isLast>
               {organization ? (
                 <XStack gap="$3" ai="flex-start">
                   <LogoBadge name={organization.name} verified={Boolean(organization.logo?.digest)} />

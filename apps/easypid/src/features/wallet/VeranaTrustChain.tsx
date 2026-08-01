@@ -18,25 +18,27 @@ import {
   RegistryChip,
   SectionLabel,
   StepTick,
+  type StepTone,
   VerdictPill,
 } from './VeranaTrustCard'
 
 function ChainStep({
-  ok,
+  tone,
   label,
   isLast,
   children,
 }: {
-  ok: boolean
+  tone: StepTone
   label: string
   isLast?: boolean
   children: React.ReactNode
 }) {
+  const rail = tone === 'ok' ? '$positive-300' : tone === 'bad' ? '$danger-300' : '$grey-300'
   return (
     <XStack gap="$2.5">
       <YStack ai="center" width={28}>
-        <StepTick ok={ok} />
-        {!isLast ? <YStack flex={1} width={2} bg={ok ? '$positive-300' : '$grey-300'} minHeight={16} /> : null}
+        <StepTick tone={tone} />
+        {!isLast ? <YStack flex={1} width={2} bg={rail} minHeight={16} /> : null}
       </YStack>
       <YStack flex={1} pb={isLast ? '$0' : '$3.5'} gap="$1">
         <SectionLabel>{label}</SectionLabel>
@@ -45,6 +47,15 @@ function ChainStep({
     </XStack>
   )
 }
+
+/**
+ * A credential can be structurally VALID and still verify nothing: the untrusted demo services
+ * issue their ECS credentials to themselves. A green tick there would be a trust signal the
+ * resolver never gave, which is exactly what [UW-POT-5] forbids, so the tick follows the
+ * resolution and the self-issued claims are withheld rather than shown as facts ([UW-POT-4]).
+ */
+const selfIssued = (credential: VeranaTrustCredential | undefined, did: string) =>
+  Boolean(credential?.issuedBy && credential.issuedBy.split('#')[0] === did)
 
 export type VeranaTrustAsk = {
   kind: 'offer' | 'request'
@@ -111,8 +122,26 @@ function AskBlock({ ask }: { ask: VeranaTrustAsk }) {
 export function VeranaTrustChain({ did, verdict, credentials, isLoading, ask }: VeranaTrustChainProps) {
   const serviceCredential = findServiceCredential(credentials)
   const organizationCredential = findOrganizationCredential(credentials)
-  const service = readEcsService(serviceCredential)
-  const organization = readEcsOrganization(organizationCredential)
+
+  const rowTone = (credential: VeranaTrustCredential | undefined): StepTone => {
+    if (verdict === 'UNVERIFIED') return 'none'
+    if (verdict === 'UNTRUSTED') return 'bad'
+    return credential?.result === 'VALID' ? 'ok' : 'bad'
+  }
+  const serviceTone = rowTone(serviceCredential)
+  const organizationTone = rowTone(organizationCredential)
+
+  const service = serviceTone === 'ok' ? readEcsService(serviceCredential) : undefined
+  const organization = organizationTone === 'ok' ? readEcsOrganization(organizationCredential) : undefined
+
+  const withheld = (credential: VeranaTrustCredential | undefined, tone: StepTone) =>
+    tone === 'none'
+      ? 'Not checked.'
+      : credential
+        ? selfIssued(credential, did)
+          ? 'Issued by this service to itself, so nothing independent verifies it.'
+          : 'Nothing in the registry vouches for this credential, so its claims are not shown.'
+        : undefined
   const description = stripLinks(service?.description)
   const hasConditions = Boolean(service?.terms || service?.privacy || service?.minimumAgeRequired)
   const note =
@@ -134,7 +163,7 @@ export function VeranaTrustChain({ did, verdict, credentials, isLoading, ask }: 
 
       {credentials.length > 0 ? (
         <YStack>
-          <ChainStep ok={serviceCredential?.result === 'VALID'} label="Service">
+          <ChainStep tone={serviceTone} label="Service">
             {service ? (
               <XStack gap="$3" ai="flex-start">
                 <LogoBadge name={service.name} verified={Boolean(service.logo?.digest)} />
@@ -150,13 +179,20 @@ export function VeranaTrustChain({ did, verdict, credentials, isLoading, ask }: 
                 </YStack>
               </XStack>
             ) : (
-              <Paragraph color="$danger-500" fontWeight="600">
-                No ECS-Service credential presented
-              </Paragraph>
+              <YStack gap="$1">
+                <Paragraph color={serviceTone === 'none' ? '$grey-600' : '$danger-500'} fontWeight="600">
+                  {serviceCredential ? 'Service claims not verified' : 'No ECS-Service credential presented'}
+                </Paragraph>
+                {withheld(serviceCredential, serviceTone) ? (
+                  <Paragraph variant="sub" color="$grey-500">
+                    {withheld(serviceCredential, serviceTone)}
+                  </Paragraph>
+                ) : null}
+              </YStack>
             )}
           </ChainStep>
 
-          <ChainStep ok={organizationCredential?.result === 'VALID'} label="Operated by" isLast>
+          <ChainStep tone={organizationTone} label="Operated by" isLast>
             {organization ? (
               <XStack gap="$3" ai="flex-start">
                 <LogoBadge name={organization.name} verified={Boolean(organization.logo?.digest)} />
@@ -170,11 +206,13 @@ export function VeranaTrustChain({ did, verdict, credentials, isLoading, ask }: 
               </XStack>
             ) : (
               <YStack gap="$1">
-                <Paragraph color="$danger-500" fontWeight="600">
-                  No ECS-Organization credential presented
+                <Paragraph color={organizationTone === 'none' ? '$grey-600' : '$danger-500'} fontWeight="600">
+                  {organizationCredential
+                    ? 'Operator claims not verified'
+                    : 'No ECS-Organization credential presented'}
                 </Paragraph>
                 <Paragraph variant="sub" color="$grey-500">
-                  Nothing verifies who operates this service
+                  {withheld(organizationCredential, organizationTone) ?? 'Nothing verifies who operates this service'}
                 </Paragraph>
               </YStack>
             )}

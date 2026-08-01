@@ -148,6 +148,38 @@ export const schemaIdFromVct = (vct?: string): string | undefined => {
   return match?.[1]
 }
 
+const VPR_SCHEMA_ID = /\/cs\/v\d+\/js\/(\d+)\b/
+
+/**
+ * The credential's own link to its schema: the SD-JWT type metadata names the VTJSC
+ * (`relatedJsonSchemaCredentialId`, vs-agent#533), and the VTJSC names the VPR schema in
+ * `credentialSubject.jsonSchema.$id`. Following it means the accreditation is checked against the
+ * schema the issuer actually committed to, instead of a credential title that anyone can reuse.
+ */
+export const resolveSchemaIdFromVct = async (vct: string): Promise<string | undefined> => {
+  const direct = VPR_SCHEMA_ID.exec(vct)?.[1]
+  if (direct) return direct
+  if (!/^https:\/\//.test(vct)) return undefined
+
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), PERMISSION_TIMEOUT_MS)
+  try {
+    const typeMetadata: unknown = await (await fetch(vct, { signal: controller.signal })).json()
+    const vtjscId = isRecord(typeMetadata) ? asString(typeMetadata.relatedJsonSchemaCredentialId) : undefined
+    if (!vtjscId || !/^https:\/\//.test(vtjscId)) return undefined
+
+    const vtjsc: unknown = await (await fetch(vtjscId, { signal: controller.signal })).json()
+    if (!isRecord(vtjsc) || !isRecord(vtjsc.credentialSubject)) return undefined
+    const jsonSchema = vtjsc.credentialSubject.jsonSchema
+    const id = isRecord(jsonSchema) ? asString(jsonSchema.$id) : asString(vtjsc.credentialSubject.id)
+    return id ? VPR_SCHEMA_ID.exec(id)?.[1] : undefined
+  } catch {
+    return undefined
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
 export const fetchSchemas = async (apiUrl: string): Promise<VeranaSchema[] | undefined> => {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), PERMISSION_TIMEOUT_MS)
@@ -252,7 +284,8 @@ export const resolveAccreditation = async (
   apiUrl: string,
   options: { did: string; role: 'ISSUER' | 'VERIFIER'; schemaId?: string; vct?: string; title?: string }
 ): Promise<VeranaAccreditation | undefined> => {
-  let schemaId = options.schemaId ?? schemaIdFromVct(options.vct)
+  // Prefer the credential's own schema link; fall back to the title only when it yields nothing.
+  let schemaId = options.schemaId ?? (options.vct ? await resolveSchemaIdFromVct(options.vct) : undefined)
 
   if (!schemaId) {
     const schemas = await fetchSchemas(apiUrl)
