@@ -9,7 +9,6 @@ import {
   Image,
   InfoButton,
   Paragraph,
-  ScrollView,
   Stack,
   useMedia,
   XStack,
@@ -171,10 +170,12 @@ export const VerifyPartySlide = ({
 
   return (
     <YStack fg={1} jc="space-between">
-      <ScrollView contentContainerStyle={{ gap: media.short ? '$4' : '$6' }}>
-        <YStack gap="$4">
-          <XStack ai="center" pt="$4" jc="center">
-            <Circle size={88} bw="$0.5" borderColor="$grey-100" bg={backgroundColor ?? '$white'}>
+      {/* The wizard already scrolls the slide; a nested ScrollView deadlocks the gesture and
+          strands the accept bar below the viewport when the trust card makes content tall. */}
+      <YStack gap={media.short ? '$3' : '$4'}>
+        <YStack gap="$3">
+          <XStack ai="center" pt="$1" jc="center">
+            <Circle size={72} bw="$0.5" borderColor="$grey-100" bg={backgroundColor ?? '$white'}>
               {logo?.url ? (
                 <Image
                   circle
@@ -259,6 +260,14 @@ export const VerifyPartySlide = ({
             >
               <DidRow did={veranaEntity.veranaDetails.did} verdict={veranaVerdict} />
               <VerdictPill verdict={veranaVerdict} note={veranaNote} />
+              {isDemoTrustedEntity && (
+                <Paragraph variant="sub" color="$warning-600">
+                  {t({
+                    id: 'verifyPartySlide.veranaDemoNetwork',
+                    message: 'Demo network - do not share real data',
+                  })}
+                </Paragraph>
+              )}
             </YStack>
           ) : trustedEntitiesWithoutSelf && (trustedEntitiesWithoutSelf.length > 0 || entityIsTrustAnchor) ? (
             <InfoButton
@@ -321,7 +330,7 @@ export const VerifyPartySlide = ({
               onPress={onPressVerifiedIssuer}
             />
           ) : null}
-          {isDemoTrustedEntity && (
+          {isDemoTrustedEntity && !veranaVerdict && (
             <InfoButton
               variant="warning"
               title={t({
@@ -353,15 +362,12 @@ export const VerifyPartySlide = ({
                     id: 'verifyPartySlide.hasPreviousInteractionsDescription',
                     message: `Last interaction: ${formatRelativeDate(new Date(lastInteractionDate))}`,
                   })
-                : t({
-                    id: 'verifyPartySlide.hasNoPreviousInteractionsDescription',
-                    message: 'No previous interactions found',
-                  })
+                : undefined
             }
             onPress={lastInteractionDate ? onPressInteraction : undefined}
           />
         </YStack>
-      </ScrollView>
+      </YStack>
       <Stack btw={1} borderColor="$grey-100" p="$4" mx="$-4">
         <DualResponseButtons
           align="horizontal"

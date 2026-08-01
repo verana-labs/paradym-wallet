@@ -123,7 +123,7 @@ export const findAccreditation = (
     ? `A ${options.role.toLowerCase()} permission for this schema is still pending validation`
     : forRole.length
       ? `A ${options.role.toLowerCase()} permission exists for this schema but is no longer in force`
-      : `No ${options.role.toLowerCase()} permission for this schema in its ecosystem`
+      : `No ${options.role.toLowerCase()} permission for this schema`
 
   return { role: options.role, granted: false, schemaId: options.schemaId, reason }
 }

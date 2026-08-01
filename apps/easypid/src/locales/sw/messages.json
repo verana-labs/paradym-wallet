@@ -154,7 +154,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        211
+        238
       ]
     ],
     "translation": "{name} vill ansluta med dig."
@@ -170,7 +170,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        189
+        216
       ]
     ],
     "translation": "{name} vill interagera för att skapa en digital signatur för ett dokument."
@@ -186,7 +186,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        179
+        206
       ]
     ],
     "translation": "{name} vill erbjuda dig ett kort."
@@ -202,7 +202,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        201
+        228
       ]
     ],
     "translation": "{name} vill begära information från dig."
@@ -360,16 +360,16 @@
     "translation": "Acceptera"
   },
   "verifyPartySlide.q2PassDescription": {
-    "translation": "",
     "message": "Accredited to issue this credential in its ecosystem",
     "placeholders": {},
     "comments": [],
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        314
+        320
       ]
-    ]
+    ],
+    "translation": ""
   },
   "biometrics.activateBiometricsButton": {
     "message": "Activate Biometrics",
@@ -654,7 +654,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        213
+        240
       ]
     ],
     "translation": "En okänd organisation vill ansluta med dig."
@@ -666,7 +666,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        193
+        220
       ]
     ],
     "translation": "En okänd organisation vill interagera för att skapa en digital signatur för ett dokument."
@@ -678,7 +678,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        181
+        208
       ]
     ],
     "translation": "En okänd organisation vill erbjuda dig ett kort."
@@ -690,7 +690,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        203
+        230
       ]
     ],
     "translation": "En okänd organisation vill begära information från dig."
@@ -720,7 +720,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        275
+        281
       ]
     ],
     "translation": "Betrodd av {0} organisationer"
@@ -732,7 +732,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        280
+        286
       ]
     ],
     "translation": "Betrodd av en organisation"
@@ -884,40 +884,40 @@
     "translation": "Auktorisering misslyckades"
   },
   "verifyPartySlide.q2PassTitle": {
-    "translation": "",
     "message": "Authorized issuer",
     "placeholders": {},
     "comments": [],
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        305
+        311
       ]
-    ]
+    ],
+    "translation": ""
   },
   "verifyPartySlide.q3PassDescription": {
-    "translation": "",
     "message": "Authorized to request this credential in its ecosystem",
     "placeholders": {},
     "comments": [],
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        318
+        324
       ]
-    ]
+    ],
+    "translation": ""
   },
   "verifyPartySlide.q3PassTitle": {
-    "translation": "",
     "message": "Authorized verifier",
     "placeholders": {},
     "comments": [],
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        306
+        312
       ]
-    ]
+    ],
+    "translation": ""
   },
   "common.backButton": {
     "message": "Back",
@@ -1096,16 +1096,16 @@
     "translation": "Född"
   },
   "verifyPartySlide.veranaTrustedDescription": {
-    "translation": "",
     "message": "Both identity checks verified against the Verana public registry",
     "placeholders": {},
     "comments": [],
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        245
+        117
       ]
-    ]
+    ],
+    "translation": ""
   },
   "common.deleteDeferredCredentialDescription": {
     "message": "By deleting {name}, you will no longer be able to retrieve your card from the issuer.",
@@ -1580,7 +1580,8 @@
         "src/features/receive/slides/VerifyPartySlide.tsx",
         240
       ]
-    ]
+    ],
+    "obsolete": true
   },
   "common.fields.country": {
     "message": "Country",
@@ -1800,6 +1801,18 @@
     ],
     "translation": "Borttaget kort"
   },
+  "verifyPartySlide.veranaDemoNetwork": {
+    "translation": "",
+    "message": "Demo network - do not share real data",
+    "placeholders": {},
+    "comments": [],
+    "origin": [
+      [
+        "src/features/receive/slides/VerifyPartySlide.tsx",
+        265
+      ]
+    ]
+  },
   "trust.demoOrg": {
     "message": "Demo organization",
     "placeholders": {},
@@ -1821,7 +1834,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        330
+        336
       ]
     ],
     "translation": "Demoorganisation"
@@ -1861,7 +1874,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        334
+        340
       ]
     ],
     "translation": "Dela inte riktig data"
@@ -1877,7 +1890,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        171
+        198
       ]
     ],
     "translation": "Litar du på {name}?"
@@ -2305,7 +2318,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        348
+        354
       ]
     ],
     "translation": "Första interaktionen"
@@ -2988,7 +3001,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        355
+        361
       ]
     ],
     "translation": "Senaste interaktion: {0}"
@@ -3361,31 +3374,32 @@
         359
       ]
     ],
-    "translation": "Inga tidigare interaktioner hittades"
+    "translation": "Inga tidigare interaktioner hittades",
+    "obsolete": true
   },
   "verifyPartySlide.q2FailTitle": {
-    "translation": "",
     "message": "Not an authorized issuer",
     "placeholders": {},
     "comments": [],
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        308
+        314
       ]
-    ]
+    ],
+    "translation": ""
   },
   "verifyPartySlide.q3FailTitle": {
-    "translation": "",
     "message": "Not an authorized verifier",
     "placeholders": {},
     "comments": [],
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        309
+        315
       ]
-    ]
+    ],
+    "translation": ""
   },
   "verifyPartySlide.veranaUntrustedTitle": {
     "translation": "",
@@ -3397,7 +3411,8 @@
         "src/features/receive/slides/VerifyPartySlide.tsx",
         241
       ]
-    ]
+    ],
+    "obsolete": true
   },
   "onboardingDataProtection.toast.secureDevice": {
     "message": "Now using {0} for PID cryptographic keys.",
@@ -3446,16 +3461,16 @@
     "translation": "Online igen."
   },
   "verifyPartySlide.veranaPartialDescription": {
-    "translation": "",
     "message": "Only one of the two identity checks verified",
     "placeholders": {},
     "comments": [],
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        250
+        122
       ]
-    ]
+    ],
+    "translation": ""
   },
   "common.openSettingsButton": {
     "message": "Open settings",
@@ -3490,7 +3505,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        292
+        298
       ]
     ],
     "translation": "Organisationen är inte verifierad"
@@ -3502,7 +3517,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        173
+        200
       ]
     ],
     "translation": "Organisation ej verifierad"
@@ -3531,7 +3546,8 @@
         "src/features/receive/slides/VerifyPartySlide.tsx",
         238
       ]
-    ]
+    ],
+    "obsolete": true
   },
   "payShare.accept": {
     "message": "Pay & share",
@@ -4038,7 +4054,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        344
+        350
       ]
     ],
     "translation": "Tidigare interaktioner"
@@ -4236,7 +4252,7 @@
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        269
+        275
       ]
     ],
     "translation": "Betrodd organisation"
@@ -5256,7 +5272,6 @@
     "translation": "Tryck för att visa"
   },
   "trust.veranaTapForDetails": {
-    "translation": "",
     "message": "Tap to view trust details",
     "placeholders": {},
     "comments": [
@@ -5267,7 +5282,8 @@
         "src/features/wallet/FunkeTrustDetailScreen.tsx",
         177
       ]
-    ]
+    ],
+    "translation": ""
   },
   "retrieveCredential.cardPending": {
     "message": "The card will be fetched once available.",
@@ -5568,28 +5584,28 @@
     "translation": "Detta korts giltighetsperiod är från {0} till {1}."
   },
   "verifyPartySlide.veranaUntrustedDescription": {
-    "translation": "",
     "message": "The Verana public registry does not vouch for this service",
     "placeholders": {},
     "comments": [],
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        259
+        131
       ]
-    ]
+    ],
+    "translation": ""
   },
   "verifyPartySlide.veranaUnverifiedDescription": {
-    "translation": "",
     "message": "The Verana registry could not be reached. Tap to view details and retry.",
     "placeholders": {},
     "comments": [],
     "origin": [
       [
         "src/features/receive/slides/VerifyPartySlide.tsx",
-        255
+        127
       ]
-    ]
+    ],
+    "translation": ""
   },
   "trust.noApprovals": {
     "message": "There are no organizations that have approved {name}.",
@@ -6275,7 +6291,8 @@
         "src/features/receive/slides/VerifyPartySlide.tsx",
         236
       ]
-    ]
+    ],
+    "obsolete": true
   },
   "authCodeFlowSlide.heading": {
     "message": "Verify your account",

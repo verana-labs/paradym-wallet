@@ -15,6 +15,12 @@ const FETCH_TIMEOUT_MS = 10_000
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null
 
+// JWT segments are base64url; this Credo build's JsonEncoder.fromBase64 rejects them.
+const decodeJwtSegment = (segment: string): unknown => {
+  const normalized = segment.replace(/-/g, '+').replace(/_/g, '/')
+  return JsonEncoder.fromBase64(normalized + '='.repeat((4 - (normalized.length % 4)) % 4))
+}
+
 /**
  * The bundled Credo holder never negotiates the `application/jwt` issuer-metadata variant, so a
  * DID-signed issuer is indistinguishable from an unsigned one and the wallet can never
@@ -44,7 +50,7 @@ export const resolveSignedIssuerMetadata = async (
     const parts = jws.split('.')
     if (parts.length !== 3) return undefined
 
-    const header: unknown = JsonEncoder.fromBase64(parts[0])
+    const header: unknown = decodeJwtSegment(parts[0])
     if (
       !isRecord(header) ||
       header.typ !== METADATA_JWT_TYP ||
@@ -54,7 +60,7 @@ export const resolveSignedIssuerMetadata = async (
       return undefined
     }
 
-    const payload: unknown = JsonEncoder.fromBase64(parts[1])
+    const payload: unknown = decodeJwtSegment(parts[1])
     if (!isRecord(payload) || payload.sub !== credentialIssuer) return undefined
 
     const didsApi = agentContext.dependencyManager.resolve(DidsApi)
