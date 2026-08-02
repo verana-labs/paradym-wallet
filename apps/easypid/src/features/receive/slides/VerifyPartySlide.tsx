@@ -399,7 +399,10 @@ export const VerifyPartySlide = ({
           )}
         </YStack>
       </YStack>
-      <Stack btw={1} borderColor="$grey-100" p="$4" mx="$-4">
+      {/* The slide scrolls, so this padding is what finally lifts the buttons clear of the system
+          gesture strip once the user reaches the end: without it the bar lands at the very bottom
+          of the window, where the navbar takes the touches and nobody can accept or decline. */}
+      <Stack btw={1} borderColor="$grey-100" p="$4" pb={Math.max(bottom + 16, 40)} mx="$-4">
         <DualResponseButtons
           align="horizontal"
           onAccept={handleContinue}
