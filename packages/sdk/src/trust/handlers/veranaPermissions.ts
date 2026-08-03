@@ -170,8 +170,12 @@ export const resolveSchemaIdFromVct = async (vct: string): Promise<string | unde
 
     const vtjsc: unknown = await (await fetch(vtjscId, { signal: controller.signal })).json()
     if (!isRecord(vtjsc) || !isRecord(vtjsc.credentialSubject)) return undefined
+    // Live VTJSCs carry the pointer as `jsonSchema.$ref` (vpr:…/cs/v1/js/N) with a copy in
+    // `credentialSubject.id`; `$id` is the published-schema variant. Read all three.
     const jsonSchema = vtjsc.credentialSubject.jsonSchema
-    const id = isRecord(jsonSchema) ? asString(jsonSchema.$id) : asString(vtjsc.credentialSubject.id)
+    const id =
+      (isRecord(jsonSchema) ? (asString(jsonSchema.$id) ?? asString(jsonSchema.$ref)) : undefined) ??
+      asString(vtjsc.credentialSubject.id)
     return id ? VPR_SCHEMA_ID.exec(id)?.[1] : undefined
   } catch {
     return undefined
