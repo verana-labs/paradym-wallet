@@ -1,0 +1,243 @@
+import type { OpenId4VciResolvedCredentialOffer, OpenId4VpResolvedAuthorizationRequest } from '@credo-ts/openid4vc'
+import type {
+  TrustedEntity,
+  TrustedIssuerEntity,
+  TrustedRelyingPartyEntity,
+  VeranaTrustCredential,
+  VeranaTrustDetails,
+  VeranaTrustMechanismConfiguration,
+} from '../trustMechanism'
+import type { SignedIssuerMetadata } from '../signedIssuerMetadata'
+
+export type VeranaTrustResolution = {
+  did: string
+  trustStatus: 'TRUSTED' | 'PARTIAL' | 'UNTRUSTED'
+  production: boolean
+  evaluatedAt?: string
+  evaluatedAtBlock?: number
+  expiresAt?: string
+  credentials?: VeranaTrustCredential[]
+}
+
+const VERANA_TIMEOUT_MS = 10_000
+
+const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null
+
+const isTrustStatus = (value: unknown): value is VeranaTrustResolution['trustStatus'] =>
+  value === 'TRUSTED' || value === 'PARTIAL' || value === 'UNTRUSTED'
+
+const parseCredential = (value: unknown): VeranaTrustCredential | undefined => {
+  if (!isRecord(value)) return undefined
+
+  return {
+    ecsType: typeof value.ecsType === 'string' ? value.ecsType : undefined,
+    result: typeof value.result === 'string' ? value.result : undefined,
+    format: typeof value.format === 'string' ? value.format : undefined,
+    issuedBy: typeof value.issuedBy === 'string' ? value.issuedBy : undefined,
+    claims: isRecord(value.claims) ? value.claims : undefined,
+  }
+}
+
+const parseResolution = (value: unknown, requestedDid: string): VeranaTrustResolution | undefined => {
+  if (
+    !isRecord(value) ||
+    value.did !== requestedDid ||
+    !isTrustStatus(value.trustStatus) ||
+    typeof value.production !== 'boolean'
+  ) {
+    return undefined
+  }
+
+  return {
+    did: value.did,
+    trustStatus: value.trustStatus,
+    production: value.production,
+    evaluatedAt: typeof value.evaluatedAt === 'string' ? value.evaluatedAt : undefined,
+    evaluatedAtBlock: typeof value.evaluatedAtBlock === 'number' ? value.evaluatedAtBlock : undefined,
+    expiresAt: typeof value.expiresAt === 'string' ? value.expiresAt : undefined,
+    credentials: Array.isArray(value.credentials)
+      ? value.credentials
+          .map(parseCredential)
+          .filter((credential): credential is VeranaTrustCredential => credential !== undefined)
+      : undefined,
+  }
+}
+
+const fetchResolution = async (
+  resolverUrl: string,
+  did: string,
+  detail: 'summary' | 'full'
+): Promise<VeranaTrustResolution | undefined> => {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), VERANA_TIMEOUT_MS)
+
+  try {
+    const response = await fetch(
+      `${resolverUrl.replace(/\/$/, '')}/v1/trust/resolve?did=${encodeURIComponent(did)}&detail=${detail}`,
+      { signal: controller.signal }
+    )
+    if (!response.ok) return undefined
+
+    return parseResolution(await response.json(), did)
+  } catch {
+    return undefined
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
+export type GetTrustedEntitiesForVeranaForOpenId4VpOptions = {
+  resolvedAuthorizationRequest: OpenId4VpResolvedAuthorizationRequest
+  trustMechanismConfiguration: VeranaTrustMechanismConfiguration
+  walletTrustedEntity?: TrustedEntity
+}
+
+export type GetTrustedEntitiesForVeranaForOpenId4VciOptions = {
+  resolvedCredentialOffer: OpenId4VciResolvedCredentialOffer
+  trustMechanismConfiguration: VeranaTrustMechanismConfiguration
+  walletTrustedEntity?: TrustedEntity
+  /** Verified signed issuer metadata resolved outside Credo, when the holder dropped it. */
+  signedIssuerMetadata?: SignedIssuerMetadata
+}
+
+// Fast trust decision on detail=summary (a cached DB lookup). A resolution is returned whatever
+// its verdict: [UW-POT-6] requires UNTRUSTED to be shown and never softened, so discarding it here
+// and falling through to the next trust mechanism would surface "unknown organization" for a peer
+// the registry explicitly does not vouch for. Only an unreachable or malformed resolver yields
+// undefined, which the caller renders as UNVERIFIED per [UW-RES-6]. The richer detail=full
+// evaluation is fetched lazily by the detail screen, off the critical path.
+export const resolveVeranaTrust = async (
+  resolverUrl: string,
+  did: string
+): Promise<VeranaTrustResolution | undefined> => fetchResolution(resolverUrl, did, 'summary')
+
+export const fetchVeranaTrustDetails = async (
+  resolverUrl: string,
+  did: string
+): Promise<VeranaTrustDetails | undefined> => {
+  const resolution = await fetchResolution(resolverUrl, did, 'full')
+  if (!resolution) return undefined
+
+  return {
+    ...resolution,
+    resolverUrl,
+    credentials: resolution.credentials ?? [],
+  }
+}
+
+// [PW-RES-6]: a peer that identifies by DID while the resolver is unreachable is UNVERIFIED, a
+// first-class state. Falling through to the generic DID handler here would render the outage as
+// "unknown organization" - indistinguishable from a peer the registry refuses to vouch for.
+const getUnverifiedRegistryEntity = (
+  configuration: VeranaTrustMechanismConfiguration,
+  did: string
+): TrustedEntity => ({
+  entityId: `verana:${did}`,
+  organizationName: configuration.registryDisplay?.organizationName ?? 'Verana Trust Registry',
+  logoUri: configuration.registryDisplay?.logoUri,
+  uri: configuration.registryDisplay?.uri ?? 'https://verana.io',
+  veranaDetails: {
+    did,
+    trustStatus: 'UNVERIFIED',
+    production: true,
+    resolverUrl: configuration.resolverUrl,
+    apiUrl: configuration.apiUrl,
+    credentials: [],
+  },
+})
+
+const readDisplay = (
+  payload: Record<string, unknown> | undefined
+): { name?: string; logo?: { uri?: string } } | undefined => {
+  if (!payload || !Array.isArray(payload.display)) return undefined
+  const first: unknown = payload.display[0]
+  if (typeof first !== 'object' || first === null) return undefined
+  const display = first as Record<string, unknown>
+  const logo = typeof display.logo === 'object' && display.logo !== null ? (display.logo as Record<string, unknown>) : undefined
+  return {
+    name: typeof display.name === 'string' ? display.name : undefined,
+    logo: logo && typeof logo.uri === 'string' ? { uri: logo.uri } : undefined,
+  }
+}
+
+const getRegistryTrustedEntity = (
+  configuration: VeranaTrustMechanismConfiguration,
+  resolution: VeranaTrustResolution
+): TrustedEntity => ({
+  entityId: `verana:${resolution.did}`,
+  organizationName: configuration.registryDisplay?.organizationName ?? 'Verana Trust Registry',
+  logoUri: configuration.registryDisplay?.logoUri,
+  uri: configuration.registryDisplay?.uri ?? 'https://verana.io',
+  demo: !resolution.production,
+  veranaDetails: {
+    did: resolution.did,
+    trustStatus: resolution.trustStatus,
+    production: resolution.production,
+    evaluatedAtBlock: resolution.evaluatedAtBlock,
+    expiresAt: resolution.expiresAt,
+    resolverUrl: configuration.resolverUrl,
+    apiUrl: configuration.apiUrl,
+    credentials: [],
+  },
+})
+
+export const getTrustedEntitiesForVeranaForOpenId4Vp = async (
+  options: GetTrustedEntitiesForVeranaForOpenId4VpOptions
+): Promise<TrustedRelyingPartyEntity | undefined> => {
+  const effectiveClientId = options.resolvedAuthorizationRequest.verifier.effectiveClientId
+  if (!effectiveClientId?.startsWith('decentralized_identifier:')) return undefined
+
+  const did = effectiveClientId.replace('decentralized_identifier:', '').split('#')[0]
+  const resolution = await resolveVeranaTrust(options.trustMechanismConfiguration.resolverUrl, did)
+
+  const clientMetadata = options.resolvedAuthorizationRequest.authorizationRequestPayload.client_metadata
+  const trustedEntities: TrustedEntity[] = [
+    resolution
+      ? getRegistryTrustedEntity(options.trustMechanismConfiguration, resolution)
+      : getUnverifiedRegistryEntity(options.trustMechanismConfiguration, did),
+  ]
+  if (options.walletTrustedEntity) trustedEntities.push(options.walletTrustedEntity)
+
+  return {
+    relyingParty: {
+      organizationName: clientMetadata?.client_name ?? did,
+      logoUri: clientMetadata?.logo_uri,
+      entityId: did,
+    },
+    trustedEntities,
+  }
+}
+
+export const getTrustedEntitiesForVeranaForOpenId4Vci = async (
+  options: GetTrustedEntitiesForVeranaForOpenId4VciOptions
+): Promise<TrustedIssuerEntity | undefined> => {
+  const signer = options.resolvedCredentialOffer.metadata.signedCredentialIssuer?.signer
+  const signerDidUrl =
+    signer?.method === 'did' && signer.didUrl ? signer.didUrl : options.signedIssuerMetadata?.didUrl
+  if (!signerDidUrl) return undefined
+
+  const baseDid = signerDidUrl.split('#')[0]
+  const resolution = await resolveVeranaTrust(options.trustMechanismConfiguration.resolverUrl, baseDid)
+
+  const metadataDisplay =
+    options.resolvedCredentialOffer.metadata.signedCredentialIssuer?.jwt.payload.display?.[0] ??
+    readDisplay(options.signedIssuerMetadata?.payload)
+  const organizationName = metadataDisplay?.name ?? baseDid
+  const logoUri = metadataDisplay?.logo?.uri
+
+  const trustedEntities: TrustedEntity[] = [
+    resolution
+      ? getRegistryTrustedEntity(options.trustMechanismConfiguration, resolution)
+      : getUnverifiedRegistryEntity(options.trustMechanismConfiguration, baseDid),
+  ]
+  if (options.walletTrustedEntity) trustedEntities.push(options.walletTrustedEntity)
+
+  return {
+    issuer: {
+      organizationName,
+      logoUri,
+      entityId: baseDid,
+    },
+    trustedEntities,
+  }
+}

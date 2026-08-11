@@ -26,6 +26,7 @@ interface PresentationNotificationScreenProps {
   logo?: DisplayImage
   overAskingResponse?: OverAskingResponse
   trustedEntities?: Array<TrustedEntity>
+  credentialType?: { vct?: string; title?: string }
   trustMechanism?: TrustMechanism
   submission?: FormattedSubmission
   usePin: boolean
@@ -51,6 +52,7 @@ export function PresentationNotificationScreen({
   onComplete,
   overAskingResponse,
   trustedEntities,
+  credentialType,
   trustMechanism,
   transaction,
   errorReason,
@@ -77,6 +79,7 @@ export function PresentationNotificationScreen({
                 name={verifierName}
                 logo={logo}
                 trustedEntities={trustedEntities}
+                credentialType={credentialType}
                 trustMechanism={trustMechanism}
               />
             ),

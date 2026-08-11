@@ -21,6 +21,8 @@ import {
   getTrustedEntitiesForFallbackForOpenId4Vp,
   type TrustedOpenId4VciEntity,
 } from './handlers/fallback'
+import { getTrustedEntitiesForVeranaForOpenId4Vci, getTrustedEntitiesForVeranaForOpenId4Vp } from './handlers/verana'
+import { resolveSignedIssuerMetadata } from './signedIssuerMetadata'
 import {
   type GetTrustedEntitiesForX509CertificateForOpenId4VpOptions,
   getTrustedEntitiesForX509CertificateForOpenId4Vci,
@@ -28,12 +30,36 @@ import {
   type TrustedX509Entity,
 } from './handlers/x509'
 
+export type VeranaTrustCredential = {
+  ecsType?: string
+  result?: string
+  format?: string
+  issuedBy?: string
+  claims?: Record<string, unknown>
+}
+
+export type VeranaTrustDetails = {
+  did: string
+  /** UNVERIFIED is wallet-local: the peer identifies by DID but the resolver could not be reached. */
+  trustStatus: 'TRUSTED' | 'PARTIAL' | 'UNTRUSTED' | 'UNVERIFIED'
+  production: boolean
+  evaluatedAtBlock?: number
+  expiresAt?: string
+  /** Resolver base URL, so the detail screen can lazily fetch the full evaluation (credentials, ecosystem). */
+  resolverUrl: string
+  /** VPR REST base URL. The resolver answers Q1 only; issuer and verifier permissions live here. */
+  apiUrl?: string
+  credentials: VeranaTrustCredential[]
+}
+
 export type TrustedEntity = {
   entityId: string
   organizationName: string
   logoUri?: string
   uri?: string
   demo?: boolean
+  /** Full Verana trust evaluation, present when the entity was resolved via the Verana registry. */
+  veranaDetails?: VeranaTrustDetails
 }
 
 export type TrustedIssuerEntity = {
@@ -64,6 +90,18 @@ export type DidTrustMechanismConfiguration = {
   trustedDidEntities: TrustedDidEntity[]
 }
 
+export type VeranaTrustMechanismConfiguration = {
+  trustMechanism: 'verana'
+  resolverUrl: string
+  /** VPR REST base URL, required to answer Q2/Q3. Without it the wallet resolves Q1 only. */
+  apiUrl?: string
+  registryDisplay?: {
+    organizationName?: string
+    logoUri?: string
+    uri?: string
+  }
+}
+
 export type FallbackMechanismConfiguration = {
   trustMechanism: 'none'
   trustedEntities: TrustedOpenId4VciEntity[]
@@ -73,8 +111,14 @@ export type TrustMechanismConfiguration =
   | EudiRpAuthenticationTrustMechanismConfiguration
   | X509TrustMechanismConfiguration
   | DidTrustMechanismConfiguration
+  | VeranaTrustMechanismConfiguration
   | FallbackMechanismConfiguration
   | { walletTrustedEntity?: TrustedEntity }
+
+const findVeranaConfiguration = (trustMechanisms: TrustMechanismConfiguration[]) =>
+  trustMechanisms.find(
+    (tm): tm is VeranaTrustMechanismConfiguration => 'trustMechanism' in tm && tm.trustMechanism === 'verana'
+  )
 
 export type AuthorizationRequestVerificationResult = {
   isValidButUntrusted: boolean
@@ -174,13 +218,23 @@ export const getTrustedEntitiesForOpenId4Vp = async (
         trustMechanismConfiguration: trustMechanismConfiguration as X509TrustMechanismConfiguration,
       })
       break
-    case 'did':
-      trustedEntity = await getTrustedEntitiesForDidForOpenId4Vp({
-        ...options,
-        walletTrustedEntity,
-        trustMechanismConfiguration: trustMechanismConfiguration as DidTrustMechanismConfiguration,
-      })
+    case 'did': {
+      const veranaConfiguration = findVeranaConfiguration(options.paradym.trustMechanisms)
+      trustedEntity =
+        (veranaConfiguration
+          ? await getTrustedEntitiesForVeranaForOpenId4Vp({
+              ...options,
+              walletTrustedEntity,
+              trustMechanismConfiguration: veranaConfiguration,
+            })
+          : undefined) ??
+        (await getTrustedEntitiesForDidForOpenId4Vp({
+          ...options,
+          walletTrustedEntity,
+          trustMechanismConfiguration: trustMechanismConfiguration as DidTrustMechanismConfiguration,
+        }))
       break
+    }
     case 'none':
       trustedEntity = await getTrustedEntitiesForFallbackForOpenId4Vp({ ...options, walletTrustedEntity })
       break
@@ -212,9 +266,19 @@ export const getTrustedEntitiesForOpenId4Vci = async (options: {
   issuer: TrustedIssuerEntity['issuer']
   trustedEntities: Array<TrustedEntity>
 }> => {
-  const trustMechanism = detectTrustMechanismForCredentialOffer({
-    resolvedCredentialOffer: options.resolvedCredentialOffer,
-  })
+  // The bundled Credo holder drops the signed issuer-metadata variant entirely, so a DID-signed
+  // issuer would be detected as 'none'. Fetch and verify it ourselves before detection.
+  const signedIssuerMetadata = options.resolvedCredentialOffer.metadata.signedCredentialIssuer
+    ? undefined
+    : await resolveSignedIssuerMetadata(
+        options.paradym.agent.context,
+        options.resolvedCredentialOffer.metadata.credentialIssuer.credential_issuer
+      )
+  const trustMechanism = signedIssuerMetadata
+    ? 'did'
+    : detectTrustMechanismForCredentialOffer({
+        resolvedCredentialOffer: options.resolvedCredentialOffer,
+      })
   const walletTrustedEntity = options.paradym.trustMechanisms.find(
     (tm): tm is { walletTrustedEntity?: TrustedEntity } => 'walletTrustedEntity' in tm
   )?.walletTrustedEntity
@@ -242,8 +306,17 @@ export const getTrustedEntitiesForOpenId4Vci = async (options: {
           trustMechanismConfiguration: trustMechanismConfiguration as FallbackMechanismConfiguration,
         }))
       break
-    case 'did':
+    case 'did': {
+      const veranaConfiguration = findVeranaConfiguration(options.paradym.trustMechanisms)
       trustedEntity =
+        (veranaConfiguration
+          ? await getTrustedEntitiesForVeranaForOpenId4Vci({
+              ...options,
+              signedIssuerMetadata,
+              walletTrustedEntity,
+              trustMechanismConfiguration: veranaConfiguration,
+            })
+          : undefined) ??
         getTrustedEntitiesForDidForOpenId4Vci({
           ...options,
           walletTrustedEntity,
@@ -255,6 +328,7 @@ export const getTrustedEntitiesForOpenId4Vci = async (options: {
           trustMechanismConfiguration: trustMechanismConfiguration as FallbackMechanismConfiguration,
         }))
       break
+    }
     case 'none':
       trustedEntity = await getTrustedEntitiesForFallbackForOpenId4Vci({
         ...options,

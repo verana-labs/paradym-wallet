@@ -12,6 +12,8 @@ interface DualResponseButtonProps {
   variant?: 'confirmation' | 'regular'
   align?: 'horizontal' | 'vertical'
   removeBottomPadding?: boolean
+  /** Blocks accept while leaving decline live, for a consent the wallet must not default to. */
+  isAcceptDisabled?: boolean
 }
 
 export function DualResponseButtons({
@@ -22,6 +24,7 @@ export function DualResponseButtons({
   acceptText,
   declineText,
   variant = 'regular',
+  isAcceptDisabled,
 }: DualResponseButtonProps) {
   const { t } = useLingui()
   const accept = acceptText ?? t(commonMessages.acceptButton)
@@ -38,8 +41,9 @@ export function DualResponseButtons({
       <Button.Solid
         f={1}
         fg={giveAcceptButtonMoreSpace ? 2 : 1}
-        disabled={isLoading}
-        onPress={onAccept}
+        disabled={isLoading || isAcceptDisabled}
+        opacity={isAcceptDisabled ? 0.45 : 1}
+        onPress={isAcceptDisabled ? undefined : onAccept}
         {...(variant === 'confirmation' ? { bg: '$danger-500' } : {})}
       >
         {isLoading ? <Spinner variant="dark" /> : accept}

@@ -3741,5 +3741,119 @@
 		"comments": [],
 		"origin": [["src/app/authenticate.tsx", 110]],
 		"translation": "PIN-i yt kërkohet për të hapur aplikacionin"
+	},
+	"trust.veranaTapForDetails": {
+		"message": "Tap to view trust details",
+		"placeholders": {},
+		"comments": [
+			"Shown under the Verana trust registry name to indicate the row is tappable"
+		],
+		"origin": [["src/features/wallet/TrustDetailScreen.tsx", 177]],
+		"translation": ""
+	},
+	"verifyPartySlide.q2FailTitle": {
+		"message": "Not an authorized issuer",
+		"placeholders": {},
+		"comments": [],
+		"origin": [["src/features/receive/slides/VerifyPartySlide.tsx", 343]],
+		"translation": ""
+	},
+	"verifyPartySlide.q2PassDescription": {
+		"message": "Accredited to issue this credential in its ecosystem",
+		"placeholders": {},
+		"comments": [],
+		"origin": [["src/features/receive/slides/VerifyPartySlide.tsx", 349]],
+		"translation": ""
+	},
+	"verifyPartySlide.q2PassTitle": {
+		"message": "Authorized issuer",
+		"placeholders": {},
+		"comments": [],
+		"origin": [["src/features/receive/slides/VerifyPartySlide.tsx", 340]],
+		"translation": ""
+	},
+	"verifyPartySlide.q3FailTitle": {
+		"message": "Not an authorized verifier",
+		"placeholders": {},
+		"comments": [],
+		"origin": [["src/features/receive/slides/VerifyPartySlide.tsx", 344]],
+		"translation": ""
+	},
+	"verifyPartySlide.q3PassDescription": {
+		"message": "Authorized to request this credential in its ecosystem",
+		"placeholders": {},
+		"comments": [],
+		"origin": [["src/features/receive/slides/VerifyPartySlide.tsx", 353]],
+		"translation": ""
+	},
+	"verifyPartySlide.q3PassTitle": {
+		"message": "Authorized verifier",
+		"placeholders": {},
+		"comments": [],
+		"origin": [["src/features/receive/slides/VerifyPartySlide.tsx", 341]],
+		"translation": ""
+	},
+	"verifyPartySlide.veranaDemoNetwork": {
+		"message": "Demo network - do not share real data",
+		"placeholders": {},
+		"comments": [],
+		"origin": [["src/features/receive/slides/VerifyPartySlide.tsx", 294]],
+		"translation": ""
+	},
+	"verifyPartySlide.veranaPartialDescription": {
+		"message": "Only one of the two identity checks verified",
+		"placeholders": {},
+		"comments": [],
+		"origin": [["src/features/receive/slides/VerifyPartySlide.tsx", 122]],
+		"translation": ""
+	},
+	"verifyPartySlide.veranaPartialTitle": {
+		"translation": "",
+		"message": "Partially verified",
+		"placeholders": {},
+		"comments": [],
+		"origin": [["src/features/receive/slides/VerifyPartySlide.tsx", 238]]
+	},
+	"verifyPartySlide.veranaTrustedDescription": {
+		"message": "Both identity checks verified against the Verana public registry",
+		"placeholders": {},
+		"comments": [],
+		"origin": [["src/features/receive/slides/VerifyPartySlide.tsx", 117]],
+		"translation": ""
+	},
+	"verifyPartySlide.veranaTrustedTitle": {
+		"translation": "",
+		"message": "Verified organization",
+		"placeholders": {},
+		"comments": [],
+		"origin": [["src/features/receive/slides/VerifyPartySlide.tsx", 236]]
+	},
+	"verifyPartySlide.veranaUntrustedDescription": {
+		"message": "The Verana public registry does not vouch for this service",
+		"placeholders": {},
+		"comments": [],
+		"origin": [["src/features/receive/slides/VerifyPartySlide.tsx", 131]],
+		"translation": ""
+	},
+	"verifyPartySlide.veranaUntrustedTitle": {
+		"translation": "",
+		"message": "Not trusted",
+		"placeholders": {},
+		"comments": [],
+		"origin": [["src/features/receive/slides/VerifyPartySlide.tsx", 241]]
+	},
+	"verifyPartySlide.veranaUnverifiedDescription": {
+		"message": "The Verana registry could not be reached. Tap to view details and retry.",
+		"placeholders": {},
+		"comments": [],
+		"origin": [["src/features/receive/slides/VerifyPartySlide.tsx", 127]],
+		"translation": ""
+	},
+	"verifyPartySlide.veranaUnverifiedTitle": {
+		"translation": "",
+		"message": "Could not verify",
+		"placeholders": {},
+		"comments": [],
+		"origin": [["src/features/receive/slides/VerifyPartySlide.tsx", 240]]
 	}
 }

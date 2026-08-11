@@ -239,6 +239,7 @@ export function OpenIdPresentationNotificationScreen() {
       verifierName={resolvedRequest?.verifier.name}
       logo={resolvedRequest?.verifier.logo}
       trustedEntities={resolvedRequest?.verifier.trustedEntities}
+      credentialType={{ title: resolvedRequest?.formattedSubmission?.entries[0]?.name }}
       trustMechanism={resolvedRequest?.trustMechanism}
       onComplete={replace}
       onCancel={replace}
